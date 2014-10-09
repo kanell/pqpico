@@ -29,7 +29,7 @@ if __name__ == '__main__':
         pico.run_streaming_ns(sample_interval=2, time_units=3)
         time.sleep(0.5)
         
-        for i in range(5):
+        for i in range(4):
             time.sleep(0.5)
             oflow = pico.overview_buffer_status()
             pico.get_streaming_last_values(buffer_callback)
