@@ -10,8 +10,10 @@ import ctypes
 import numpy as np
 import datetime
 
+# if 1, prints diagnostics to standard output
 VERBOSE = 1
-PROFILING = 0 # Attention, may redirect standart print output
+# If 1, generates profile.txt
+PROFILING = 0 # Attention, may redirect standard print output, restart python kernel if output disappears
 
 ## Constants of PS2000.dll
 # channel identifiers
@@ -68,11 +70,8 @@ if sys.platform == 'win32':
     LIBNAME = 'C:\Program Files\Pico Technology\PicoScope6\PS2000.dll'
 else:
     LIBNAME = '/usr/local/lib/libps2000.so.2.0.7'
-    
-class PicoError(Exception):
-    '''pico scope error'''
-        
-    
+     
+     
 class Picoscope:
     
     def __init__(self):
@@ -84,7 +83,7 @@ class Picoscope:
         else:
             self.lib = ctypes.cdll.LoadLibrary(LIBNAME)
         if not self.lib:
-            raise PicoError('could not open library: %s' % LIBNAME)
+            print('---ERROR: LIB NOT FOUND---')
             
         # open the picoscope
         self.handle = self.open_unit()
@@ -116,6 +115,7 @@ class Picoscope:
         return res
         
     def get_handle(self):
+        '''returns oscilloscope handle'''
         return self.handle
         
         
@@ -133,7 +133,8 @@ class Picoscope:
         self.lib.ps2000_set_trigger(self.handle, source, threshold, direction, delay, auto_trigger_ms)
         
     def construct_buffer_callback(self):
-        print('Constructing Buffer Callback')
+        if VERBOSE == 1:
+            print('Constructing Buffer Callback')
         # Buffer callback C function template
         C_BUFFER_CALLBACK = ctypes.CFUNCTYPE( None,ctypes.POINTER(ctypes.POINTER(ctypes.c_int16)),ctypes.c_short,
                         ctypes.c_ulong,ctypes.c_short,ctypes.c_short,ctypes.c_ulong)
@@ -182,7 +183,7 @@ class Picoscope:
     def run_streaming_ns(self, sample_interval=10, time_units=MICROSECONDS,
                          max_samples=1000, auto_stop=0, noOfSamplesPerAggregate=1, overview_buffer_size=800000):
         '''Starts recording data at given speed'''
-        if VERBOSE:
+        if VERBOSE == 1:
             print('Starting Streaming at '+str(sample_interval)+' us')
         self.lib.ps2000_run_streaming_ns(self.handle, sample_interval, time_units, 
                                          max_samples, auto_stop, noOfSamplesPerAggregate, overview_buffer_size)
@@ -227,9 +228,9 @@ if __name__ == '__main__':
             pr=cProfile.Profile()
             pr.enable()
             
-        # Picoscope
+        # Picoscope continuous streaming setup parameters
         resolution = 1 #in ms        
-        samplepoints = 1000 # samples collected, max is 60000
+        samplepoints = 40 # samples collected, max is 60000
         vertrange = RANGE_2V
         
         # Numpy and Matplotlib init
@@ -241,7 +242,7 @@ if __name__ == '__main__':
                             str(RANGE_SCALE_MAP[vertrange]/2)+' V',
                             str(RANGE_SCALE_MAP[vertrange])+' V']
                             
-        xticklocations = np.arange(0,1001,200)
+        xticklocations = np.arange(0,(samplepoints+1),5)
         xtickstrings = [str(x)+' ms' for x in xticklocations]
         
         #Set up Picoscope for continuous streaming
@@ -251,8 +252,8 @@ if __name__ == '__main__':
         plt.ion()
         plt.pause(0.1)
         
-        
-        for i in range(15):
+        #Get values and plot
+        for i in range(50):
             
             b = pico.get_values()
             b = b[0,:]
