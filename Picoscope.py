@@ -253,7 +253,7 @@ if __name__ == '__main__':
         plt.pause(0.1)
         
         #Get values and plot
-        for i in range(50):
+        for i in range(100):
             
             b = pico.get_values()
             b = b[0,:]
