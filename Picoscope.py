@@ -9,6 +9,7 @@ import sys
 import ctypes
 import numpy as np
 import datetime
+import os
 
 # if 1, prints diagnostics to standard output
 VERBOSE = 1
@@ -76,6 +77,7 @@ class Picoscope:
     
     def __init__(self):
         self.handle = None
+        self.channels = [0,0]
 
         # load the library
         if sys.platform == 'win32':
@@ -124,6 +126,10 @@ class Picoscope:
         '''Default Values: channel: Channel A | channel enabled: true | ac/dc coupling mode: dc(=true) | vertical range: 2Vpp'''
         try:
             self.lib.ps2000_set_channel(self.handle, channel, enabled, dc, vertrange)
+            if channel == PS2000_CHANNEL_A:
+                self.channels[0] = 1
+            elif channel == PS2000_CHANNEL_B:
+                self.channels[1] = 1
             if VERBOSE == 1:
                 print('Channel set to Channel '+str(channel))
         finally:
@@ -148,22 +154,22 @@ class Picoscope:
             filename=datetime.datetime.now()
             filename= filename.strftime("%Y%m%d_%H_%M_%S_%f")
             CH1='CH1_' + filename 
-            CH2='CH2_' + filename
+            #CH2='CH2_' + filename
             
             #cast 2d-pointer from c- callback into python pointer 
             ob = ctypes.cast(overviewBuffers,ctypes.POINTER(ctypes.POINTER(ctypes.c_short)))
             
             #create array from pointer data ob[0]-> CH1 ob[1]-> CH2
             streamed_data_CH1=np.fromiter(ob[0], dtype=np.short, count=nValues)
-            streamed_data_CH2=np.fromiter(ob[1], dtype=np.short, count=nValues)
-            
-            #save array data into csv file. Figure formatted (fmt) as "ganze Zahlen"
-#            np.savetxt(CH1+'.csv', streamed_data_CH1, fmt='%s',delimiter=",")    
-            
+            #streamed_data_CH2=np.fromiter(ob[1], dtype=np.short, count=nValues)
+                        
             #save array data into numpy fileformat
-            np.save(CH1,streamed_data_CH1)
-            np.save(CH2,streamed_data_CH2)
-            print('File saved:',CH1,CH2)
+            path1 = os.path.normpath('C:\\Users\ckattmann\Documents\GitHub\pqpico\Data')+'/'+CH1
+            #path2 = os.path.normpath('C:\\Users\ckattmann\Documents\GitHub\pqpico\Data')+'/'+CH2
+                        
+            np.save(path1,streamed_data_CH1)
+            #np.save(path2,streamed_data_CH2)
+            #print('File saved:',CH1,CH2)
             
             return 0
             
@@ -231,7 +237,7 @@ if __name__ == '__main__':
         # Picoscope continuous streaming setup parameters
         resolution = 1 #in ms        
         samplepoints = 40 # samples collected, max is 60000
-        vertrange = RANGE_2V
+        vertrange = RANGE_50MV
         
         # Numpy and Matplotlib init
         plotarray = np.array([])
@@ -253,8 +259,13 @@ if __name__ == '__main__':
         plt.pause(0.1)
         
         #Get values and plot
-        for i in range(100):
-            
+        for i in range(4):
+            if VERBOSE:
+                if pico.channels[0] == 1:
+                    print('Channel A active')
+                if pico.channels[1] == 1:
+                    print('Channel B active')
+                
             b = pico.get_values()
             b = b[0,:]
             b = np.trim_zeros(b)

@@ -8,7 +8,7 @@ Created on Mon Sep  8 09:08:08 2014
 PROFILING = 0
 
 import Picoscope
-import ctypes, time, sys
+import time, sys
 
                            
 if __name__ == '__main__':
