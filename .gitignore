@@ -103,3 +103,4 @@ $RECYCLE.BIN/
 # Data Files
 Data/
 *.npy
+*.ini

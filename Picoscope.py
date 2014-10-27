@@ -12,6 +12,9 @@ import numpy as np
 import datetime
 import os
 
+libname_christoph = 'C:\Program Files\Pico Technology\PicoScope6\ps4000a.dll'
+libname_micha = 'C:\Program Files (x86)\Pico Technology\PicoScope6\ps4000a.dll'
+
 # if 1, prints diagnostics to standard output
 VERBOSE = 1
 #if 2, uses picoscope 2000 API, if 4, uses picoscope 4000 series-A API
@@ -77,7 +80,7 @@ if sys.platform == 'win32':
         if VERBOSE:
             print('Loading ps2000.dll')
     if DEVICE_SERIES == 4:
-        LIBNAME = 'C:\Program Files (x86)\Pico Technology\PicoScope6\ps4000a.dll'
+        LIBNAME = 'C:\Program Files\Pico Technology\PicoScope6\ps4000a.dll'
         if VERBOSE:
             print('Loading ps4000A.dll')
 else:
