@@ -5,6 +5,7 @@ Created on Mon Sep  8 09:41:22 2014
 @author: ckattmann
 """
 
+
 import sys
 import ctypes
 import numpy as np
@@ -13,6 +14,9 @@ import os
 
 # if 1, prints diagnostics to standard output
 VERBOSE = 1
+#if 2, uses picoscope 2000 API, if 4, uses picoscope 4000 series-A API
+# NOTE: only 4000 series-A API supports 8 channel picoscope 4824 model, all other 4000 series scopes use 4000 series API
+DEVICE_SERIES = 4
 # If 1, generates profile.txt
 PROFILING = 0 # Attention, may redirect standard print output, restart python kernel if output disappears
 
@@ -68,15 +72,31 @@ SECONDS = 5
 
 # Set the correct dll as  LIBNAME
 if sys.platform == 'win32':
-    LIBNAME = 'C:\Program Files\Pico Technology\PicoScope6\PS2000.dll'
+    if DEVICE_SERIES == 2:    
+        LIBNAME = 'C:\Program Files\Pico Technology\PicoScope6\PS2000.dll'
+        if VERBOSE:
+            print('Loading ps2000.dll')
+    if DEVICE_SERIES == 4:
+        LIBNAME = 'C:\Program Files (x86)\Pico Technology\PicoScope6\ps4000a.dll'
+        if VERBOSE:
+            print('Loading ps4000A.dll')
 else:
-    LIBNAME = '/usr/local/lib/libps2000.so.2.0.7'
+    if DEVICE_SERIES == 2:    
+        LIBNAME = '/usr/local/lib/libps2000.so.2.0.7'
+    if DEVICE_SERIES == 4:
+        #not available at present according PICO-SCOPE website
+        print('---ERROR: LIB NOT FOUND---')
      
      
-class Picoscope:
-    
+class Picoscope: 
     def __init__(self):
-        self.handle = None
+        if DEVICE_SERIES == 2:        
+            self.handle = None
+        if DEVICE_SERIES == 4:
+            self.handle=ctypes.c_int()
+            self.seriesnumber =ctypes.c_char_p()
+            if VERBOSE:
+                print(str(self.handle.value))
         self.channels = [0,0]
 
         # load the library
@@ -88,7 +108,10 @@ class Picoscope:
             print('---ERROR: LIB NOT FOUND---')
             
         # open the picoscope
-        self.handle = self.open_unit()
+        if DEVICE_SERIES == 2:
+            self.handle = self.open_unit()
+        if DEVICE_SERIES == 4:
+            self.open_unit()
      
         
 # Basic Open and Close operations
@@ -96,23 +119,50 @@ class Picoscope:
         '''open interface to unit'''
         if VERBOSE == 1:
             print('Opening Picoscope')
-        self.handle = self.lib.ps2000_open_unit()
-        if self.handle == -1:
+        #for 2000 series picoscopes
+        if DEVICE_SERIES == 2:
+             if VERBOSE == 1:
+                 print('Opening Picoscope')
+             self.handle = self.lib.ps2000_open_unit()
+             if self.handle == -1:
+                 print('Failed to open oscilloscope')
+             elif self.handle == 0:
+                 print('No oscilloscope found')
+             elif self.handle > 0:
+                 if VERBOSE:
+                     print('Oscilloscope handle: '+str(self.handle))
+             else:
+                 print('WTFWTFWTF DEEP SHIT')
+             return self.handle
+            
+        #for 4824 8 channel series picoscopes   
+        if DEVICE_SERIES == 4:
+            #if VERBOSE:
+               # print(str(self.lib.ps4000aOpenUnit(byref(self.handle), byref(self.seriesnumber)))
+            print(str(self.lib.ps4000aOpenUnit(ctypes.pointer(self.handle), ctypes.pointer(self.seriesnumber))))
+        if VERBOSE:
+                print('Handle is:'+str(self.handle.value))
+                print('SeriesNo. is:'+str(self.seriesnumber.value))
+        if self.handle.value == -1:
             print('Failed to open oscilloscope')
-        elif self.handle == 0:
+        elif self.handle.value == 0:
             print('No oscilloscope found')
-        elif self.handle > 0:
+        elif self.handle.value > 0:
             if VERBOSE:
                 print('Oscilloscope handle: '+str(self.handle))
+                print('Oscilloscope SeriesNumber: '+self.seriesnumber)
         else:
             print('WTFWTFWTF DEEP SHIT')
-        return self.handle
+        return self.handle.value
 
     def close_unit(self):
         '''close the interface to the unit'''
         if VERBOSE == 1:
             print('Closing Picoscope')
-        res = self.lib.ps2000_close_unit(self.handle)
+        if DEVICE_SERIES == 2:    
+            res = self.lib.ps2000_close_unit(self.handle)
+        if DEVICE_SERIES == 4:        
+            res = self.lib.ps4000aCloseUnit(self.handle)
         self.handle = None
         return res
         
