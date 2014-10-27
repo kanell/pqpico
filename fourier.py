@@ -6,8 +6,16 @@ Created on Tue Oct 21 16:50:00 2014
 """
 
 import os
+import glob
 import numpy as np
+import matplotlib.pyplot as plt
 
-datapath = os.path.join('C:','Users','ckattmann','Documents','GitHub','Data')
+npyfiles = glob.glob('Data\*.npy')
+a = np.load(npyfiles[1])
 
-#np.load()
+#os.path.getsize
+#Plot array lengths
+
+npylengths = [os.path.getsize(npyfiles[i]) for i in range(len(npyfiles))]
+
+plt.plot(npylengths)
