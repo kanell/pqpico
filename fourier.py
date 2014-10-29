@@ -11,7 +11,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 npyfiles = glob.glob('Data\*.npy')
-a = np.load(npyfiles[1])
 
 #os.path.getsize
 #Plot array lengths
