@@ -71,7 +71,8 @@ SECONDS = 5
 
 # Set the correct dll as  LIBNAME
 if sys.platform == 'win32':
-    LIBNAME = libname_christoph
+    LIBNAME = libname_micha
+    
 else:
     LIBNAME = '/usr/local/lib/libps2000.so.2.0.7'
      
@@ -105,8 +106,21 @@ class Picoscope4000:
         self.serial = ctypes.create_string_buffer(16)
         picoStatus = self.lib.ps4000aOpenUnit(ctypes.byref(self.handle),None)
         print('PicoStatus: '+str(picoStatus))
-        print(self.handle.value)
+        print('Handle is '+str(self.handle.value))
         
+#       change Power Source Setup if applied to USB 2.0 / 1.0 with doubled-headed cable
+        if picoStatus == 286:
+            res=self.lib.ps4000aChangePowerSource(self.handle, picoStatus)
+            if VERBOSE:
+                print('Wrong Powersupply detected, try changing supply mode')
+            if res >0:
+                self.close_unit()
+                if VERBOSE:
+                    print('Failed to change USB Power Supply')
+            else:
+                if VERBOSE:
+                    print('OK: Supply mode changed')
+                    
         if self.handle.value == -1:
             print('Failed to open oscilloscope')
         elif self.handle.value == 0:
@@ -127,6 +141,7 @@ class Picoscope4000:
         self.handle = None
         return res
         
+      
     def get_handle(self):
         '''returns oscilloscope handle'''
         return self.handle
