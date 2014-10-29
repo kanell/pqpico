@@ -96,7 +96,7 @@ class Picoscope:
         if DEVICE_SERIES == 2:        
             self.handle = None
         if DEVICE_SERIES == 4:
-            self.handle=ctypes.c_int()
+            self.handle=ctypes.c_int16()
             self.seriesnumber =ctypes.c_char_p()
             if VERBOSE:
                 print(str(self.handle.value))
