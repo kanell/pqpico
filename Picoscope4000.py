@@ -21,8 +21,8 @@ PROFILING = 0 # Attention, may redirect standard print output, restart python ke
 
 ## Constants of PS2000.dll
 # channel identifiers
-PS2000_CHANNEL_A = 0
-PS2000_CHANNEL_B = 1
+PS4000_CHANNEL_A = 0
+PS4000_CHANNEL_B = 1
 PS2000_NONE = 5
 
 # channel range values/codes
@@ -36,6 +36,9 @@ RANGE_2V    = 7  # 2 V
 RANGE_5V    = 8  # 5 V
 RANGE_10V   = 9  # 10 V
 RANGE_20V   = 10 # 20 V
+RANGE_50V   = 11 # 50 V
+RANGE_1ß0V   = 12 # 100 V
+RANGE_20V   = 13 # 200 V
 
 # map the range the the scale factor
 RANGE_SCALE_MAP = {
@@ -50,6 +53,9 @@ RANGE_5V    : 5.0,
 RANGE_10V   : 10.0,
 RANGE_20V   : 20.0,
 }
+
+#analog offset inital valiue
+ANALOG_OFFSET_0V = 0# 0V offset
 
 # Y Resolution Limits
 MAX_Y = 32768
@@ -148,16 +154,17 @@ class Picoscope4000:
         
         
 # Setup Operations
-    def set_channel(self, channel=PS2000_CHANNEL_A, enabled=True, dc=True, vertrange=RANGE_1V):
+    def set_channel(self, channel=PS4000_CHANNEL_A, enabled=True, dc=True, vertrange=RANGE_1V,analogOffset=ANALOG_OFFSET_0V):
         '''Default Values: channel: Channel A | channel enabled: true | ac/dc coupling mode: dc(=true) | vertical range: 2Vpp'''
         try:
-            self.lib.ps2000_set_channel(self.handle, channel, enabled, dc, vertrange)
-            if channel == PS2000_CHANNEL_A:
+            res= self.lib.ps4000aSetChannel(self.handle, channel, enabled, dc, vertrange,analogOffset)
+            if channel == PS4000_CHANNEL_A:
                 self.channels[0] = 1
-            elif channel == PS2000_CHANNEL_B:
+            elif channel == PS4000_CHANNEL_B:
                 self.channels[1] = 1
             if VERBOSE == 1:
                 print('Channel set to Channel '+str(channel))
+                print('Status of setChannel '+str(res)+' (0 = PICO_OK)')
         finally:
             pass
         
@@ -201,7 +208,18 @@ class Picoscope4000:
             
         return C_BUFFER_CALLBACK(get_buffer_callback)
 
-        
+
+  #Set Data Buffer for each channel of the PS4824 scope      
+    def set_data_buffer(self,channel=PS4000_CHANNEL_A, bufferlength=1000,segmentIndex=0,mode=0):
+        try:
+            if channel == 0: #channel A is set
+                self.channel_A_buffer=(ctypes.c_short* bufferlength)()
+                res=self.lib.ps4000aSetDataBuffer(self.handle,channel,ctypes.byref(self.channel_A_buffer),bufferlength,segmentIndex,mode)
+            if VERBOSE:
+                print ('Try setting data buffer')
+                print('Result: '+str(res)+' (0= PICO_OK)')
+        finally:
+            pass        
         
 # Running and Retrieving Data
     def run_streaming(self, sample_interval_ms=10, max_samples=100, windowed=0):
