@@ -88,6 +88,7 @@ class Picoscope4000:
     def __init__(self):
         self.handle = None
         self.channels = [0,0]
+        self.streaming_sample_interval = ctypes.c_ushort(4)
         
         # load the library
         if sys.platform == 'win32':
@@ -96,7 +97,6 @@ class Picoscope4000:
             self.lib = ctypes.cdll.LoadLibrary(LIBNAME)
         if not self.lib:
             print('---ERROR: LIB NOT FOUND---')
-            
         # open the picoscope
         self.handle = self.open_unit()
      
@@ -212,7 +212,7 @@ class Picoscope4000:
   #Set Data Buffer for each channel of the PS4824 scope      
     def set_data_buffer(self,channel=PS4000_CHANNEL_A, bufferlength=1000,segmentIndex=0,mode=0):
         try:
-            if channel == 0: #channel A is set
+            if channel == PS4000_CHANNEL_A: #channel A is set
                 self.channel_A_buffer=(ctypes.c_short* bufferlength)()
                 res=self.lib.ps4000aSetDataBuffer(self.handle,channel,ctypes.byref(self.channel_A_buffer),bufferlength,segmentIndex,mode)
             if VERBOSE:
@@ -222,21 +222,18 @@ class Picoscope4000:
             pass        
         
 # Running and Retrieving Data
-    def run_streaming(self, sample_interval_ms=10, max_samples=100, windowed=0):
-        '''Default Values: Sample Rate: 10ms | Max Samples: 100 | Windowed: No (=0) '''
+    def run_streaming(self,sampleIntervalTimeUnit=MICROSECONDS, downSampleRatio=0,downSampleRatioMode=0, bufferlength=1000):
         try:
-            res = self.lib.ps2000_run_streaming(self.handle, sample_interval_ms, max_samples, windowed)
+            autoStop=0
+            res = self.lib.ps4000aRunStreaming(self.handle,ctypes.byref(self.streaming_sample_interval),sampleIntervalTimeUnit,None,None,autoStop,downSampleRatio,downSampleRatioMode,bufferlength)
+            # DOC of ps4000aRunStreaming(handler, pointer to sampleInterval, sampleIntervalTimeUnit, maxPretriggerSamples=none, maxPosttriggerSamples=none,autostop=none,downsamplingrate=no, downsamlingratiomode=0,bifferlength= must be the same as in setbuffer)
+            if VERBOSE:
+                print('Try starting streaming mode')
+                print('Result: '+str(res)+' (0= PICO_OK,64 = PICO_INVALID_SAMPLERATIO)')
+                print(self.streaming_sample_interval)
         finally:
             pass
-        return res
-        
-    def run_streaming_ns(self, sample_interval=10, time_units=MICROSECONDS,
-                         max_samples=1000, auto_stop=0, noOfSamplesPerAggregate=1, overview_buffer_size=800000):
-        '''Starts recording data at given speed'''
-        if VERBOSE == 1:
-            print('Starting Streaming at '+str(sample_interval)+' us')
-        self.lib.ps2000_run_streaming_ns(self.handle, sample_interval, time_units, 
-                                         max_samples, auto_stop, noOfSamplesPerAggregate, overview_buffer_size)
+
                                          
         
     def get_values(self, no_of_values=1000):
@@ -260,6 +257,16 @@ class Picoscope4000:
     def get_streaming_last_values(self, buffer_callback):
         res = self.lib.ps2000_get_streaming_last_values(self.handle, buffer_callback)
         return res
+    
+    def stop_sampling(self):
+        try:
+            res=self.lib.ps4000aStop(self.handle)
+            if VERBOSE:
+                print('Stopping sampling of Scope')
+                print('Result: '+str(res)+' (0= PICO_OK)')
+        finally:
+            pass
+        return res    
 
 # Checking Buffer Overflow
     def overview_buffer_status(self):
@@ -267,12 +274,18 @@ class Picoscope4000:
         res = self.lib.ps2000_overview_buffer_status(self.handle, ctypes.byref(streaming_buffer_overflow))
         print('Overflow Error: ',str(res))
         return streaming_buffer_overflow.value
+        
 
 
 if __name__ == '__main__':
     try:
         #Set up Picoscope for continuous streaming
         pico = Picoscope4000()
+        #pico.open_unit()
+        pico.set_channel()
+        pico.set_data_buffer()
+        pico.run_streaming()
+        pico.stop_sampling()
  
         
     finally:
