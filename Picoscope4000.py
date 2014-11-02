@@ -88,7 +88,10 @@ class Picoscope4000:
     def __init__(self):
         self.handle = None
         self.channels = [0,0]
-        self.streaming_sample_interval = ctypes.c_ushort(4)
+        self.streaming_sample_interval = ctypes.c_uint(1000)
+        self.timeIntervalNS=ctypes.c_uint(7)
+        self.maxSamples=ctypes.c_uint(7)
+        self.streaming_buffer_length =100000
         
         # load the library
         if sys.platform == 'win32':
@@ -210,31 +213,41 @@ class Picoscope4000:
 
 
   #Set Data Buffer for each channel of the PS4824 scope      
-    def set_data_buffer(self,channel=PS4000_CHANNEL_A, bufferlength=1000,segmentIndex=0,mode=0):
+    def set_data_buffer(self,channel=PS4000_CHANNEL_A, bufferlength=101372,segmentIndex=0,mode=0):
         try:
             if channel == PS4000_CHANNEL_A: #channel A is set
                 self.channel_A_buffer=(ctypes.c_short* bufferlength)()
-                res=self.lib.ps4000aSetDataBuffer(self.handle,channel,ctypes.byref(self.channel_A_buffer),bufferlength,segmentIndex,mode)
+                self.streaming_buffer_length=bufferlength
+                res=self.lib.ps4000aSetDataBuffer(self.handle,channel,ctypes.byref(self.channel_A_buffer),self.streaming_buffer_length,segmentIndex,mode)
             if VERBOSE:
                 print ('Try setting data buffer')
                 print('Result: '+str(res)+' (0= PICO_OK)')
         finally:
             pass        
         
-# Running and Retrieving Data
-    def run_streaming(self,sampleIntervalTimeUnit=MICROSECONDS, downSampleRatio=0,downSampleRatioMode=0, bufferlength=1000):
+# Running and Retrieving Data NOTE: Bufferlength must be the same as set in set_data_buffer function
+    def run_streaming(self,sampleIntervalTimeUnit=2, downSampleRatio=1,downSampleRatioMode=0):
         try:
             autoStop=0
-            res = self.lib.ps4000aRunStreaming(self.handle,ctypes.byref(self.streaming_sample_interval),sampleIntervalTimeUnit,None,None,autoStop,downSampleRatio,downSampleRatioMode,bufferlength)
+            maxPreTriggerSamples=None
+            maxPostTriggerSamples=None
+            res = self.lib.ps4000aRunStreaming(self.handle,ctypes.byref(self.streaming_sample_interval),sampleIntervalTimeUnit,maxPreTriggerSamples,maxPostTriggerSamples,autoStop,downSampleRatio,downSampleRatioMode,self.streaming_buffer_length)
             # DOC of ps4000aRunStreaming(handler, pointer to sampleInterval, sampleIntervalTimeUnit, maxPretriggerSamples=none, maxPosttriggerSamples=none,autostop=none,downsamplingrate=no, downsamlingratiomode=0,bifferlength= must be the same as in setbuffer)
             if VERBOSE:
                 print('Try starting streaming mode')
-                print('Result: '+str(res)+' (0= PICO_OK,64 = PICO_INVALID_SAMPLERATIO)')
+                print('Result: '+str(res)+' (0= PICO_OK, 64 = PICO_INVALID_SAMPLERATIO)')
                 print(self.streaming_sample_interval)
         finally:
             pass
 
-                                         
+    def get_Timebase(self, timebase=79,noSamples=1000,segmentIndex= 1):
+        try:
+            res=self.lib.ps4000aGetTimebase(self.handle, timebase, noSamples, ctypes.byref(self.timeIntervalNS),ctypes.byref(self.maxSamples),None)
+            print('TimeInterval_Ns: '+ str(self.timeIntervalNS))
+            print('maxSamples: '+str(self.maxSamples))
+            print(res)
+        finally:
+            pass
         
     def get_values(self, no_of_values=1000):
         buffer_a = (ctypes.c_short * no_of_values)()
@@ -283,6 +296,7 @@ if __name__ == '__main__':
         pico = Picoscope4000()
         #pico.open_unit()
         pico.set_channel()
+        pico.get_Timebase()
         pico.set_data_buffer()
         pico.run_streaming()
         pico.stop_sampling()
