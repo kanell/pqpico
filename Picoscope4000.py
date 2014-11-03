@@ -37,7 +37,7 @@ RANGE_5V    = 8  # 5 V
 RANGE_10V   = 9  # 10 V
 RANGE_20V   = 10 # 20 V
 RANGE_50V   = 11 # 50 V
-RANGE_1ß0V   = 12 # 100 V
+RANGE_10V   = 12 # 100 V
 RANGE_20V   = 13 # 200 V
 
 # map the range the the scale factor
