@@ -100,10 +100,7 @@ class Picoscope4000:
         '''open interface to unit'''
         if VERBOSE == 1:
             print('Opening Picoscope')
-            
         self.handle = ctypes.c_int16()
-#        self.serial = ctypes.c_int32()
-        self.serial = ctypes.create_string_buffer(16)
         picoStatus = self.lib.ps4000aOpenUnit(ctypes.byref(self.handle),None)
         print('PicoStatus: '+str(picoStatus))
         print('Handle is '+str(self.handle.value))
@@ -141,7 +138,6 @@ class Picoscope4000:
         self.handle = None
         return res
         
-      
     def get_handle(self):
         '''returns oscilloscope handle'''
         return self.handle
