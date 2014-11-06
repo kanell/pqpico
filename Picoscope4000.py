@@ -37,7 +37,7 @@ RANGE_5V    = 8  # 5 V
 RANGE_10V   = 9  # 10 V
 RANGE_20V   = 10 # 20 V
 RANGE_50V   = 11 # 50 V
-RANGE_1ß0V   = 12 # 100 V
+RANGE_10V   = 12 # 100 V
 RANGE_20V   = 13 # 200 V
 
 # map the range the the scale factor
@@ -287,7 +287,8 @@ class Picoscope4000:
         res = self.lib.ps2000_overview_buffer_status(self.handle, ctypes.byref(streaming_buffer_overflow))
         print('Overflow Error: ',str(res))
         return streaming_buffer_overflow.value
-        
+    def getPicoStatusString(self, errorcode):
+
 
 
 if __name__ == '__main__':
