@@ -38,7 +38,7 @@ while True:
     
     # Create and start thread for reading measurements from Picoscope and writing them to disk
     thread_readMeasurements = threading.Thread(target=readMeasurements)
-    threads.append(thread_readMeasurement)
+    threads.append(thread_readMeasurements)
     thread_readMeasurements.start()
 
     # Create and start thread for calculating RMS
