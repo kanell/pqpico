@@ -17,8 +17,8 @@ import mpmath
 import math
 
 
-SAMPLEPOINTS = 100000 #Samplepoints
-SAMPLING_RATE = 500000
+SAMPLEPOINTS = 100000   #Samplepoints
+SAMPLING_RATE = 500000  #Sampling Rate
 
 
 #class Measurement:
@@ -64,21 +64,33 @@ def plt_definition_FFT(FFTmeasurepoints, SAMPLEPOINTS, SAMPLING_RATE):
 
 def THD(SAMPLEPOINTS, SAMPLING_RATE, FFTmeasurepoints):
     THD = 0 #Startwert der THD
-    for i in range(2,41): #ist bisher falsch
-        Bereich_Amplituden = SAMPLEPOINTS/float(SAMPLING_RATE)*0.02*i            
-        THD_Amplituden = np.max(FFTmeasurepoints[(Bereich_Amplituden-1):(Bereich_Amplituden+1)])
-        THD_Amplituden = np.power((THD_Amplituden/1300),2)  #1300 just an example -> 1300 must be replaced with rms 
+    for i in range(2,41): 
+        Bereich_Amplituden = SAMPLEPOINTS/float(SAMPLING_RATE)/0.02*i #an dieser Stelle sollte sich der Amplitudenausschlag der Oberschwingung befinden           
+        THD_Amplituden = FFTmeasurepoints[Bereich_Amplituden]    
+        THD_Amplituden = np.power((THD_Amplituden),2)  #1300 just an example -> 1300 must be replaced with rms 
         THD = THD + THD_Amplituden
-    THD = np.sqrt(THD) #darf nicht größer als 8% betragen
-    return THD    
+    THD = np.sqrt(THD/np.power(1300,2)) #darf nicht größer als 8% betragen
+    return THD
+
+def THD_Gruppierung(SAMPLEPOINTS, SAMPLING_RATE, FFTmeasurepoints):
+    THD_Gruppierung = 0
+    for i in range(2,41): 
+        Bereich_Amplituden = SAMPLEPOINTS/float(SAMPLING_RATE)/0.02*i #an dieser Stelle sollte sich der Amplitudenausschlag der Oberschwingung befinden           
+        THD_Gruppierung_teil1 = 0.5*FFTmeasurepoints[Bereich_Amplituden-(SAMPLEPOINTS/float(SAMPLING_RATE)/0.02)/2]**2
+        THD_Gruppierung_teil2 = 0.5*FFTmeasurepoints[Bereich_Amplituden+(SAMPLEPOINTS/float(SAMPLING_RATE)/0.02)/2]**2
+        FFTmeasurepoints_Bereich = FFTmeasurepoints[(Bereich_Amplituden-(SAMPLEPOINTS/float(SAMPLING_RATE)/0.02)/2+1):(Bereich_Amplituden+(SAMPLEPOINTS/float(SAMPLING_RATE)/0.02)/2)]**2       
+        THD_Gruppierung_teil3 = np.sum(FFTmeasurepoints_Bereich)
+        THD_Gruppierung = THD_Gruppierung_teil1+THD_Gruppierung_teil2+THD_Gruppierung_teil3+THD_Gruppierung
+    THD_Gruppierung = np.sqrt(THD_Gruppierung/np.power(1300,2))    
+    return THD_Gruppierung
     
 if __name__ == '__main__':
     try:
         #Fourier Analysis:    
-        #measurement = load_measurepoints(SAMPLEPOINTS)
+        measurement = load_measurepoints(SAMPLEPOINTS)
 
         #example for the fourier analysis
-        measurement = example_sin_wave(SAMPLEPOINTS, SAMPLING_RATE)    
+        #measurement = example_sin_wave(SAMPLEPOINTS, SAMPLING_RATE)    
 
         #FFT: Measured data are given in FFT-equation        
         FFTmeasurepoints = fast_fourier_transformation(measurement, SAMPLEPOINTS)
@@ -89,6 +101,8 @@ if __name__ == '__main__':
         #THD is calculated
         THD = THD(SAMPLEPOINTS, SAMPLING_RATE, FFTmeasurepoints)
         print("THD = " + str(THD))
+        THD_Gruppierung = THD_Gruppierung(SAMPLEPOINTS, SAMPLING_RATE, FFTmeasurepoints)
+        print("THD_Gruppierung = " + str(THD_Gruppierung))
         
         #rms voltage is calculated
         rms = calculate_rms(measurement)
