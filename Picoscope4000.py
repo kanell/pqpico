@@ -10,6 +10,7 @@ import ctypes
 import numpy as np
 import datetime
 import os
+import platform
 
 libname_christoph = 'C:\Program Files\Pico Technology\PicoScope6\ps4000A.dll'
 libname_micha = 'C:\Program Files (x86)\Pico Technology\PicoScope6\ps4000A.dll'
@@ -78,13 +79,11 @@ SECONDS = 5
 # Set the correct dll as  LIBNAME
 if sys.platform == 'win32':
     LIBNAME = libname_micha
-    
 else:
-    LIBNAME = '/usr/local/lib/libps2000.so.2.0.7'
+    LIBNAME = '/opt/picoscope/lib/libps4000.so'
      
      
 class Picoscope4000:
-    
     def __init__(self):
         self.handle = None
         self.channels = [0,0]
@@ -92,11 +91,11 @@ class Picoscope4000:
         self.timeIntervalNS=ctypes.c_uint(7)
         self.maxSamples=ctypes.c_uint(7)
         self.streaming_buffer_length =100000
-        
+        print(LIBNAME) 
         # load the library
-        if sys.platform == 'win32':
+        if platform.system() == 'Windows':
             self.lib = ctypes.windll.LoadLibrary(LIBNAME)
-        else:
+        elif platform.system() == 'Linux':
             self.lib = ctypes.cdll.LoadLibrary(LIBNAME)
         if not self.lib:
             print('---ERROR: LIB NOT FOUND---')
@@ -284,21 +283,22 @@ class Picoscope4000:
         print('Overflow Error: ',str(res))
         return streaming_buffer_overflow.value
     def getPicoStatusString(self, errorcode):
+        pass
 
 
 
 if __name__ == '__main__':
-    try:
-        #Set up Picoscope for continuous streaming
-        pico = Picoscope4000()
-        #pico.open_unit()
-        pico.set_channel()
-        pico.get_Timebase()
-        pico.set_data_buffer()
-        pico.run_streaming()
-        pico.stop_sampling()
- 
-        
-    finally:
-        pico.close_unit()
-        print('Picoscope closed')
+    print('Picoscope go!')
+    #Set up Picoscope for continuous streaming
+    pico = Picoscope4000()
+    pico.open_unit()
+    pico.set_channel()
+    pico.get_Timebase()
+    pico.set_data_buffer()
+    pico.run_streaming()
+    pico.stop_sampling()
+
+    
+    print('Closing Picoscope')
+    pico.close_unit()
+    print('Picoscope closed')
