@@ -8,12 +8,14 @@ Created on Mon Sep  8 09:41:22 2014
 import sys
 import ctypes
 import numpy as np
+import time
 import datetime
 import os
 import platform
 
 libname_christoph = 'C:\Program Files\Pico Technology\PicoScope6\ps4000A.dll'
 libname_micha = 'C:\Program Files (x86)\Pico Technology\PicoScope6\ps4000A.dll'
+libname_pokini = '/opt/picoscope/lib/libps4000a.so'
 
 # if 1, prints diagnostics to standard output
 VERBOSE = 1
@@ -24,30 +26,31 @@ PROFILING = 0 # Attention, may redirect standard print output, restart python ke
 # channel identifiers
 PS4000_CHANNEL_A = 0
 PS4000_CHANNEL_B = 1
-PS2000_NONE = 5
+PS4000_NONE = 5
 
 # channel range values/codes
-RANGE_20MV  = 1  # 20 mV
-RANGE_50MV  = 2  # 50 mV
-RANGE_100MV = 3  # 100 mV
-RANGE_200MV = 4  # 200 mV
-RANGE_500MV = 5  # 500 mV
+RANGE_10mV  = 0  # 20 mV
+RANGE_20mV  = 1  # 20 mV
+RANGE_50mV  = 2  # 50 mV
+RANGE_100mV = 3  # 100 mV
+RANGE_200mV = 4  # 200 mV
+RANGE_500mV = 5  # 500 mV
 RANGE_1V    = 6  # 1 V
 RANGE_2V    = 7  # 2 V
 RANGE_5V    = 8  # 5 V
 RANGE_10V   = 9  # 10 V
 RANGE_20V   = 10 # 20 V
 RANGE_50V   = 11 # 50 V
-RANGE_10V   = 12 # 100 V
-RANGE_20V   = 13 # 200 V
+RANGE_100V   = 12 # 100 V
+RANGE_200V   = 13 # 200 V
 
 # map the range the the scale factor
 RANGE_SCALE_MAP = {
-RANGE_20MV  : 0.02,
-RANGE_50MV  : 0.05,
-RANGE_100MV : 0.1,
-RANGE_200MV : 0.2,
-RANGE_500MV : 0.5,
+RANGE_20mV  : 0.02,
+RANGE_50mV  : 0.05,
+RANGE_100mV : 0.1,
+RANGE_200mV : 0.2,
+RANGE_500mV : 0.5,
 RANGE_1V    : 1.0,
 RANGE_2V    : 2.0,
 RANGE_5V    : 5.0,
@@ -80,7 +83,7 @@ SECONDS = 5
 if sys.platform == 'win32':
     LIBNAME = libname_micha
 else:
-    LIBNAME = '/opt/picoscope/lib/libps4000.so'
+    LIBNAME = libname_pokini
      
      
 class Picoscope4000:
@@ -91,14 +94,15 @@ class Picoscope4000:
         self.timeIntervalNS=ctypes.c_uint(7)
         self.maxSamples=ctypes.c_uint(7)
         self.streaming_buffer_length =100000
-        print(LIBNAME) 
+
         # load the library
         if platform.system() == 'Windows':
             self.lib = ctypes.windll.LoadLibrary(LIBNAME)
         elif platform.system() == 'Linux':
             self.lib = ctypes.cdll.LoadLibrary(LIBNAME)
-        if not self.lib:
-            print('---ERROR: LIB NOT FOUND---')
+        else:
+            print('Unknown Platform')
+
         # open the picoscope
         self.handle = self.open_unit()
      
@@ -107,42 +111,37 @@ class Picoscope4000:
     def open_unit(self):
         '''open interface to unit'''
         if VERBOSE == 1:
-            print('Opening Picoscope')
+            print('==== open_unit ====')
         self.handle = ctypes.c_int16()
         picoStatus = self.lib.ps4000aOpenUnit(ctypes.byref(self.handle),None)
-        print('PicoStatus: '+str(picoStatus))
-        print('Handle is '+str(self.handle.value))
+        print(' PicoStatus: '+str(picoStatus))
+        print(' Handle is '+str(self.handle.value))
         
-#       change Power Source Setup if applied to USB 2.0 / 1.0 with doubled-headed cable
+        #change Power Source Setup if applied to USB 2.0 / 1.0 with doubled-headed cable
         if picoStatus == 286:
-            res=self.lib.ps4000aChangePowerSource(self.handle, picoStatus)
+            res = self.lib.ps4000aChangePowerSource(self.handle, picoStatus)
             if VERBOSE:
-                print('Wrong Powersupply detected, try changing supply mode')
-            if res >0:
+                print(' Wrong Powersupply detected, try changing supply mode')
+            if res > 0:
                 self.close_unit()
                 if VERBOSE:
-                    print('Failed to change USB Power Supply')
+                    print(' Failed to change USB Power Supply')
             else:
                 if VERBOSE:
-                    print('OK: Supply mode changed')
+                    print(' OK: Supply mode changed')
                     
         if self.handle.value == -1:
-            print('Failed to open oscilloscope')
+            print(' Failed to open oscilloscope')
         elif self.handle.value == 0:
-            print('No oscilloscope found')
-        elif self.handle.value > 0:
-            if VERBOSE:
-                print('Oscilloscope handle: '+str(self.handle.value))
-        else:
-            print('WTFWTFWTF DEEP SHIT')
+            print(' No oscilloscope found')
         return self.handle
 
     def close_unit(self):
         '''close the interface to the unit'''
         if VERBOSE == 1:
-            print('Closing Picoscope')
+            print('==== close_unit ====')
         res = self.lib.ps4000aCloseUnit(self.handle.value)
-        print(res)
+        print(' '+str(res))
         self.handle = None
         return res
         
@@ -152,34 +151,53 @@ class Picoscope4000:
         
         
 # Setup Operations
-    def set_channel(self, channel=PS4000_CHANNEL_A, enabled=True, dc=True, vertrange=RANGE_1V,analogOffset=ANALOG_OFFSET_0V):
+    def set_channel(self, channel=PS4000_CHANNEL_A, enabled=True, dc=True, vertrange=RANGE_20V,analogOffset=ANALOG_OFFSET_0V):
         '''Default Values: channel: Channel A | channel enabled: true | ac/dc coupling mode: dc(=true) | vertical range: 2Vpp'''
+        if VERBOSE:
+            print('==== SetChannel ====')
         try:
-            res= self.lib.ps4000aSetChannel(self.handle, channel, enabled, dc, vertrange,analogOffset)
+            res = self.lib.ps4000aSetChannel(self.handle, channel, enabled, dc, vertrange, analogOffset)
             if channel == PS4000_CHANNEL_A:
                 self.channels[0] = 1
             elif channel == PS4000_CHANNEL_B:
                 self.channels[1] = 1
             if VERBOSE == 1:
-                print('Channel set to Channel '+str(channel))
-                print('Status of setChannel '+str(res)+' (0 = PICO_OK)')
+                print(' Channel set to Channel '+str(channel))
+                print(' Status of setChannel '+str(res)+' (0 = PICO_OK)')
         finally:
             pass
         
-    def set_trigger(self, source=PS2000_NONE, threshold=int(MAX_Y/2), direction=PS2000_RISING, delay=-25, auto_trigger_ms=1):
-        self.lib.ps2000_set_trigger(self.handle, source, threshold, direction, delay, auto_trigger_ms)
-        
+# Set Data Buffer for each channel of the PS4824 scope      
+    def set_data_buffer(self, channel=PS4000_CHANNEL_A, bufferlength=101372, segmentIndex=0, mode=0):
+        print('==== SetDataBuffer ====')
+        try:
+            if channel == PS4000_CHANNEL_A: #channel A is set
+                self.channel_A_buffer=(ctypes.c_short * bufferlength)()
+                self.streaming_buffer_length = bufferlength
+                res = self.lib.ps4000aSetDataBuffer(self.handle,channel,ctypes.byref(self.channel_A_buffer),self.streaming_buffer_length,segmentIndex,mode)
+            if VERBOSE:
+                print(' Result: '+str(res)+' (0 = PICO_OK)')
+        finally:
+            pass     
+
     def construct_buffer_callback(self):
-        if VERBOSE == 1:
-            print('Constructing Buffer Callback')
         # Buffer callback C function template
-        C_BUFFER_CALLBACK = ctypes.CFUNCTYPE( None,ctypes.POINTER(ctypes.POINTER(ctypes.c_int16)),ctypes.c_short,
-                        ctypes.c_ulong,ctypes.c_short,ctypes.c_short,ctypes.c_ulong)
+        C_BUFFER_CALLBACK = ctypes.CFUNCTYPE(
+                None,
+                ctypes.c_int16,
+                ctypes.c_int32,
+                ctypes.c_uint32,
+                ctypes.c_int16,
+                ctypes.c_uint32,
+                ctypes.c_int16,
+                ctypes.c_int16,
+                ctypes.c_void_p)
         
         # Callback function
-        def get_buffer_callback(overviewBuffers,overflow,triggeredAt,triggered,auto_stop,nValues):
+        def get_buffer_callback(handle, noOfSamples, startIndex, overflow, triggerAt, triggered, autoStop, pParameter):
             
-            #print('Callback for saving to disk')
+            if overflow:
+                print(' Vertical Overflow')
             #create filename based on actual timestamp
             #filename = time.strftime("%Y%m%d_%H_%M_%S_%f.csv")
             filename=datetime.datetime.now()
@@ -188,17 +206,20 @@ class Picoscope4000:
             #CH2='CH2_' + filename
             
             #cast 2d-pointer from c- callback into python pointer 
-            ob = ctypes.cast(overviewBuffers,ctypes.POINTER(ctypes.POINTER(ctypes.c_short)))
+            #ob = ctypes.cast(overviewBuffers,ctypes.POINTER(ctypes.POINTER(ctypes.c_short)))
+            print(' startIndex = '+str(startIndex))
+            print(' Number of samples collected: '+str(noOfSamples))
+            print(str(self.channel_A_buffer[startIndex]))
             
             #create array from pointer data ob[0]-> CH1 ob[1]-> CH2
-            streamed_data_CH1=np.fromiter(ob[0], dtype=np.short, count=nValues)
+            #streamed_data_CH1=np.fromiter(ob[0], dtype=np.short, count=nValues)
             #streamed_data_CH2=np.fromiter(ob[1], dtype=np.short, count=nValues)
                         
             #save array data into numpy fileformat
             path1 = os.path.normpath('C:\\Users\ckattmann\Documents\GitHub\pqpico\Data')+'/'+CH1
             #path2 = os.path.normpath('C:\\Users\ckattmann\Documents\GitHub\pqpico\Data')+'/'+CH2
                         
-            np.save(path1,streamed_data_CH1)
+            #np.save(path1,streamed_data_CH1)
             #np.save(path2,streamed_data_CH2)
             #print('File saved:',CH1,CH2)
             
@@ -206,32 +227,27 @@ class Picoscope4000:
             
         return C_BUFFER_CALLBACK(get_buffer_callback)
 
-
-  #Set Data Buffer for each channel of the PS4824 scope      
-    def set_data_buffer(self,channel=PS4000_CHANNEL_A, bufferlength=101372,segmentIndex=0,mode=0):
-        try:
-            if channel == PS4000_CHANNEL_A: #channel A is set
-                self.channel_A_buffer=(ctypes.c_short* bufferlength)()
-                self.streaming_buffer_length=bufferlength
-                res=self.lib.ps4000aSetDataBuffer(self.handle,channel,ctypes.byref(self.channel_A_buffer),self.streaming_buffer_length,segmentIndex,mode)
-            if VERBOSE:
-                print ('Try setting data buffer')
-                print('Result: '+str(res)+' (0= PICO_OK)')
-        finally:
-            pass        
-        
 # Running and Retrieving Data NOTE: Bufferlength must be the same as set in set_data_buffer function
-    def run_streaming(self,sampleIntervalTimeUnit=2, downSampleRatio=1,downSampleRatioMode=0):
+    def run_streaming(self, sampleIntervalTimeUnit=2, downSampleRatio=1, downSampleRatioMode=0):
+        if VERBOSE:
+            print('==== RunStreaming ====')
         try:
             autoStop=0
             maxPreTriggerSamples=None
             maxPostTriggerSamples=None
-            res = self.lib.ps4000aRunStreaming(self.handle,ctypes.byref(self.streaming_sample_interval),sampleIntervalTimeUnit,maxPreTriggerSamples,maxPostTriggerSamples,autoStop,downSampleRatio,downSampleRatioMode,self.streaming_buffer_length)
-            # DOC of ps4000aRunStreaming(handler, pointer to sampleInterval, sampleIntervalTimeUnit, maxPretriggerSamples=none, maxPosttriggerSamples=none,autostop=none,downsamplingrate=no, downsamlingratiomode=0,bifferlength= must be the same as in setbuffer)
+            res = self.lib.ps4000aRunStreaming(self.handle,
+                    ctypes.byref(self.streaming_sample_interval),
+                    sampleIntervalTimeUnit,
+                    maxPreTriggerSamples,
+                    maxPostTriggerSamples,
+                    autoStop,
+                    downSampleRatio,
+                    downSampleRatioMode,
+                    self.streaming_buffer_length)
+            # DOC of ps4000aRunStreaming(handler, pointer to sampleInterval, sampleIntervalTimeUnit, maxPretriggerSamples=none, maxPosttriggerSamples=none,autostop=none,downsamplingrate=no, downsamlingratiomode=0,bufferlength= must be the same as in setbuffer)
             if VERBOSE:
-                print('Try starting streaming mode')
-                print('Result: '+str(res)+' (0= PICO_OK, 64 = PICO_INVALID_SAMPLERATIO)')
-                print(self.streaming_sample_interval)
+                print(' Result: '+str(res)+' (0 = PICO_OK, 64 = PICO_INVALID_SAMPLERATIO)')
+                print(' Streaming Sample Interval: '+str(self.streaming_sample_interval.value))
         finally:
             pass
 
@@ -243,27 +259,12 @@ class Picoscope4000:
             print(res)
         finally:
             pass
+
+#Actually retrieve the data on the pc
+    def get_streaming_latest_values(self):
+        buffer_callback = self.construct_buffer_callback()
+        res = self.lib.ps4000aGetStreamingLatestValues(self.handle, buffer_callback)
         
-    def get_values(self, no_of_values=1000):
-        buffer_a = (ctypes.c_short * no_of_values)()
-        buffer_b = (ctypes.c_short * no_of_values)()
-        buffer_c = None
-        buffer_d = None
-        overflow = ctypes.c_short()
-        no_of_values = ctypes.c_long(no_of_values)
-        
-        self.lib.ps2000_get_values(self.handle, 
-                                    ctypes.byref(buffer_a), ctypes.byref(buffer_b), 
-                                    buffer_c, buffer_d, overflow,
-                                    ctypes.byref(no_of_values))
-                                    
-        a = np.ctypeslib.as_array(buffer_a)
-        b = np.ctypeslib.as_array(buffer_b)
-        
-        return np.vstack((a,b))
-        
-    def get_streaming_last_values(self, buffer_callback):
-        res = self.lib.ps2000_get_streaming_last_values(self.handle, buffer_callback)
         return res
     
     def stop_sampling(self):
@@ -288,17 +289,17 @@ class Picoscope4000:
 
 
 if __name__ == '__main__':
-    print('Picoscope go!')
-    #Set up Picoscope for continuous streaming
-    pico = Picoscope4000()
-    pico.open_unit()
-    pico.set_channel()
-    pico.get_Timebase()
-    pico.set_data_buffer()
-    pico.run_streaming()
-    pico.stop_sampling()
 
-    
-    print('Closing Picoscope')
-    pico.close_unit()
-    print('Picoscope closed')
+    pico = Picoscope4000()
+    try:
+        #Set up Picoscope for continuous streaming
+        pico.set_channel()
+        #pico.get_Timebase()
+        pico.set_data_buffer()
+        pico.run_streaming()
+        for step in xrange(20):
+            time.sleep(0.25)
+            pico.get_streaming_latest_values()
+        pico.stop_sampling()
+    finally:      
+        pico.close_unit()
