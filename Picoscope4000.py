@@ -91,8 +91,6 @@ class Picoscope4000:
         self.handle = None
         self.channels = [0,0]
         self.streaming_sample_interval = ctypes.c_uint(1000)
-        self.timeIntervalNS=ctypes.c_uint(7)
-        self.maxSamples=ctypes.c_uint(7)
         self.streaming_buffer_length =100000
 
         # load the library
@@ -209,7 +207,7 @@ class Picoscope4000:
             #ob = ctypes.cast(overviewBuffers,ctypes.POINTER(ctypes.POINTER(ctypes.c_short)))
             print(' startIndex = '+str(startIndex))
             print(' Number of samples collected: '+str(noOfSamples))
-            print(str(self.channel_A_buffer[startIndex]))
+            print(' Value of first sample: '+str(self.channel_A_buffer[startIndex]))
             
             #create array from pointer data ob[0]-> CH1 ob[1]-> CH2
             #streamed_data_CH1=np.fromiter(ob[0], dtype=np.short, count=nValues)
@@ -297,9 +295,11 @@ if __name__ == '__main__':
         #pico.get_Timebase()
         pico.set_data_buffer()
         pico.run_streaming()
-        for step in xrange(20):
-            time.sleep(0.25)
+        time.sleep(0.5)
+        for step in xrange(15):
+            time.sleep(0.001)
             pico.get_streaming_latest_values()
+        time.sleep(0.5)
         pico.stop_sampling()
     finally:      
         pico.close_unit()
