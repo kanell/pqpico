@@ -91,7 +91,8 @@ class Picoscope4000:
         self.handle = None
         self.channels = [0,0]
         self.streaming_sample_interval = ctypes.c_uint(1000)
-        self.streaming_buffer_length =100000
+        self.streaming_sample_interval_unit = 3
+        self.streaming_buffer_length = 100
 
         # load the library
         if platform.system() == 'Windows':
@@ -149,7 +150,7 @@ class Picoscope4000:
         
         
 # Setup Operations
-    def set_channel(self, channel=PS4000_CHANNEL_A, enabled=True, dc=True, vertrange=RANGE_20V,analogOffset=ANALOG_OFFSET_0V):
+    def set_channel(self, channel=PS4000_CHANNEL_A, enabled=True, dc=True, vertrange=RANGE_20V, analogOffset=ANALOG_OFFSET_0V):
         '''Default Values: channel: Channel A | channel enabled: true | ac/dc coupling mode: dc(=true) | vertical range: 2Vpp'''
         if VERBOSE:
             print('==== SetChannel ====')
@@ -166,8 +167,9 @@ class Picoscope4000:
             pass
         
 # Set Data Buffer for each channel of the PS4824 scope      
-    def set_data_buffer(self, channel=PS4000_CHANNEL_A, bufferlength=101372, segmentIndex=0, mode=0):
+    def set_data_buffer(self, channel=PS4000_CHANNEL_A, segmentIndex=0, mode=0):
         print('==== SetDataBuffer ====')
+        bufferlength = self.streaming_buffer_length
         try:
             if channel == PS4000_CHANNEL_A: #channel A is set
                 self.channel_A_buffer=(ctypes.c_short * bufferlength)()
@@ -205,9 +207,11 @@ class Picoscope4000:
             
             #cast 2d-pointer from c- callback into python pointer 
             #ob = ctypes.cast(overviewBuffers,ctypes.POINTER(ctypes.POINTER(ctypes.c_short)))
-            print(' startIndex = '+str(startIndex))
-            print(' Number of samples collected: '+str(noOfSamples))
-            print(' Value of first sample: '+str(self.channel_A_buffer[startIndex]))
+            if VERBOSE:
+                print('------------------')
+                print(' startIndex = '+str(startIndex))
+                print(' Number of samples collected: '+str(noOfSamples))
+                print(' Value of first sample: '+str(self.channel_A_buffer[startIndex]))
             
             #create array from pointer data ob[0]-> CH1 ob[1]-> CH2
             #streamed_data_CH1=np.fromiter(ob[0], dtype=np.short, count=nValues)
@@ -226,9 +230,10 @@ class Picoscope4000:
         return C_BUFFER_CALLBACK(get_buffer_callback)
 
 # Running and Retrieving Data NOTE: Bufferlength must be the same as set in set_data_buffer function
-    def run_streaming(self, sampleIntervalTimeUnit=2, downSampleRatio=1, downSampleRatioMode=0):
+    def run_streaming(self, downSampleRatio=1, downSampleRatioMode=0):
         if VERBOSE:
             print('==== RunStreaming ====')
+        sampleIntervalTimeUnit = self.streaming_sample_interval_unit
         try:
             autoStop=0
             maxPreTriggerSamples=None
@@ -297,7 +302,7 @@ if __name__ == '__main__':
         pico.run_streaming()
         time.sleep(0.5)
         for step in xrange(15):
-            time.sleep(0.001)
+            time.sleep(0.5)
             pico.get_streaming_latest_values()
         time.sleep(0.5)
         pico.stop_sampling()
