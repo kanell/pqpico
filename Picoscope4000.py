@@ -26,6 +26,12 @@ PROFILING = 0 # Attention, may redirect standard print output, restart python ke
 # channel identifiers
 PS4000_CHANNEL_A = 0
 PS4000_CHANNEL_B = 1
+PS4000_CHANNEL_C = 2
+PS4000_CHANNEL_D = 3
+PS4000_CHANNEL_E = 4
+PS4000_CHANNEL_F = 5
+PS4000_CHANNEL_G = 6
+PS4000_CHANNEL_H = 7
 PS4000_NONE = 5
 
 # channel range values/codes
@@ -173,8 +179,37 @@ class Picoscope4000:
         try:
             if channel == PS4000_CHANNEL_A: #channel A is set
                 self.channel_A_buffer=(ctypes.c_short * bufferlength)()
-                self.streaming_buffer_length = bufferlength
+                #self.streaming_buffer_length = bufferlength
                 res = self.lib.ps4000aSetDataBuffer(self.handle,channel,ctypes.byref(self.channel_A_buffer),self.streaming_buffer_length,segmentIndex,mode)
+            if channel == PS4000_CHANNEL_B: #channel B is set
+                self.channel_B_buffer=(ctypes.c_short * bufferlength)()
+                #self.streaming_buffer_length = bufferlength
+                res = self.lib.ps4000aSetDataBuffer(self.handle,channel,ctypes.byref(self.channel_B_buffer),self.streaming_buffer_length,segmentIndex,mode)
+            if channel == PS4000_CHANNEL_C: #channel C is set
+                self.channel_C_buffer=(ctypes.c_short * bufferlength)()
+                #self.streaming_buffer_length = bufferlength
+                res = self.lib.ps4000aSetDataBuffer(self.handle,channel,ctypes.byref(self.channel_C_buffer),self.streaming_buffer_length,segmentIndex,mode)
+            if channel == PS4000_CHANNEL_D: #channel D is set
+                self.channel_D_buffer=(ctypes.c_short * bufferlength)()
+                #self.streaming_buffer_length = bufferlength
+                res = self.lib.ps4000aSetDataBuffer(self.handle,channel,ctypes.byref(self.channel_D_buffer),self.streaming_buffer_length,segmentIndex,mode)
+            if channel == PS4000_CHANNEL_E: #channel E is set
+                self.channel_E_buffer=(ctypes.c_short * bufferlength)()
+                #self.streaming_buffer_length = bufferlength
+                res = self.lib.ps4000aSetDataBuffer(self.handle,channel,ctypes.byref(self.channel_E_buffer),self.streaming_buffer_length,segmentIndex,mode)
+            if channel == PS4000_CHANNEL_F: #channel F is set
+                self.channel_F_buffer=(ctypes.c_short * bufferlength)()
+                #self.streaming_buffer_length = bufferlength
+                res = self.lib.ps4000aSetDataBuffer(self.handle,channel,ctypes.byref(self.channel_F_buffer),self.streaming_buffer_length,segmentIndex,mode)
+            if channel == PS4000_CHANNEL_G: #channel G is set
+                self.channel_G_buffer=(ctypes.c_short * bufferlength)()
+                #self.streaming_buffer_length = bufferlength
+                res = self.lib.ps4000aSetDataBuffer(self.handle,channel,ctypes.byref(self.channel_G_buffer),self.streaming_buffer_length,segmentIndex,mode)
+            if channel == PS4000_CHANNEL_H: #channel H is set
+                self.channel_H_buffer=(ctypes.c_short * bufferlength)()
+                #self.streaming_buffer_length = bufferlength
+                res = self.lib.ps4000aSetDataBuffer(self.handle,channel,ctypes.byref(self.channel_H_buffer),self.streaming_buffer_length,segmentIndex,mode)
+
             if VERBOSE:
                 print(' Result: '+str(res)+' (0 = PICO_OK)')
         finally:
