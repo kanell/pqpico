@@ -92,7 +92,7 @@ class Picoscope4000:
         self.channels = [0,0]
         self.streaming_sample_interval = ctypes.c_uint(1000)
         self.streaming_sample_interval_unit = 3
-        self.streaming_buffer_length = 100
+        self.streaming_buffer_length = 10000
 
         # load the library
         if platform.system() == 'Windows':
@@ -301,7 +301,7 @@ if __name__ == '__main__':
         pico.set_data_buffer()
         pico.run_streaming()
         time.sleep(0.5)
-        for step in xrange(15):
+        for step in xrange(25):
             time.sleep(0.5)
             pico.get_streaming_latest_values()
         time.sleep(0.5)
