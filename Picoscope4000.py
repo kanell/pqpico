@@ -17,6 +17,7 @@ libname_christoph = 'C:\Program Files\Pico Technology\PicoScope6\ps4000A.dll'
 libname_micha = 'C:\Program Files (x86)\Pico Technology\PicoScope6\ps4000A.dll'
 libname_pokini = '/opt/picoscope/lib/libps4000a.so'
 
+datadirectory_pokini = '/home/kipfer/pqpico/Data'
 # if 1, prints diagnostics to standard output
 VERBOSE = 1
 # If 1, generates profile.txtpicotec
@@ -90,7 +91,7 @@ if sys.platform == 'win32':
     LIBNAME = libname_micha
 else:
     LIBNAME = libname_pokini
-     
+    DATADIRECTORY = datadirectory_pokini     
      
 class Picoscope4000:
     def __init__(self):
@@ -233,30 +234,22 @@ class Picoscope4000:
             
             if overflow:
                 print(' Vertical Overflow')
-            #create filename based on actual timestamp
             #filename = time.strftime("%Y%m%d_%H_%M_%S_%f.csv")
             filename=datetime.datetime.now()
             filename= filename.strftime("%Y%m%d_%H_%M_%S_%f")
             CH1='CH1_' + filename 
             #CH2='CH2_' + filename
             
-            #cast 2d-pointer from c- callback into python pointer 
-            #ob = ctypes.cast(overviewBuffers,ctypes.POINTER(ctypes.POINTER(ctypes.c_short)))
             if VERBOSE:
                 print('------------------')
                 print(' startIndex = '+str(startIndex))
                 print(' Number of samples collected: '+str(noOfSamples))
                 print(' Value of first sample: '+str(self.channel_A_buffer[startIndex]))
             
-            #create array from pointer data ob[0]-> CH1 ob[1]-> CH2
-            #streamed_data_CH1=np.fromiter(ob[0], dtype=np.short, count=nValues)
-            #streamed_data_CH2=np.fromiter(ob[1], dtype=np.short, count=nValues)
+            #create array from buffer
+            data_CH1 = self.channel_A_buffer[startIndex+noOfSamples]
                         
-            #save array data into numpy fileformat
-            path1 = os.path.normpath('C:\\Users\ckattmann\Documents\GitHub\pqpico\Data')+'/'+CH1
-            #path2 = os.path.normpath('C:\\Users\ckattmann\Documents\GitHub\pqpico\Data')+'/'+CH2
-                        
-            #np.save(path1,streamed_data_CH1)
+            np.save(os.path.normpath(DATADIRECTORY)+'/'+CH1,data_CH1)
             #np.save(path2,streamed_data_CH2)
             #print('File saved:',CH1,CH2)
             
