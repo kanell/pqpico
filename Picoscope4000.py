@@ -97,9 +97,9 @@ class Picoscope4000:
     def __init__(self):
         self.handle = None
         self.channels = [0,0]
-        self.streaming_sample_interval = ctypes.c_uint(1000)
+        self.streaming_sample_interval = ctypes.c_uint(1)
         self.streaming_sample_interval_unit = 3
-        self.streaming_buffer_length = 10000
+        self.streaming_buffer_length = 10000000
 
         # load the library
         if platform.system() == 'Windows':
@@ -247,8 +247,9 @@ class Picoscope4000:
                 print(' Value of first sample: '+str(self.channel_A_buffer[startIndex]))
             
             #create array from buffer
-            data_CH1 = self.channel_A_buffer[startIndex+noOfSamples]
-                        
+            data_CH1 = self.channel_A_buffer[startIndex:startIndex+noOfSamples]
+            if VERBOSE:
+                print('--> Number of samples saved: '+str(len(data_CH1)))
             np.save(os.path.normpath(DATADIRECTORY)+'/'+CH1,data_CH1)
             #np.save(path2,streamed_data_CH2)
             #print('File saved:',CH1,CH2)
@@ -328,8 +329,8 @@ if __name__ == '__main__':
         pico.set_data_buffer()
         pico.run_streaming()
         time.sleep(0.5)
-        for step in xrange(25):
-            time.sleep(0.5)
+        for step in xrange(5):
+            time.sleep(10)
             pico.get_streaming_latest_values()
         time.sleep(0.5)
         pico.stop_sampling()
