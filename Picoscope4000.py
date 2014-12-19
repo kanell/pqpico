@@ -157,7 +157,7 @@ class Picoscope4000:
         
         
 # Setup Operations
-    def set_channel(self, channel=PS4000_CHANNEL_A, enabled=True, dc=True, vertrange=RANGE_20V, analogOffset=ANALOG_OFFSET_0V):
+    def set_channel(self, channel=PS4000_CHANNEL_A, enabled=True, dc=True, vertrange=RANGE_50V, analogOffset=ANALOG_OFFSET_0V):
         '''Default Values: channel: Channel A | channel enabled: true | ac/dc coupling mode: dc(=true) | vertical range: 2Vpp'''
         if VERBOSE:
             print('==== SetChannel ====')
@@ -329,8 +329,8 @@ if __name__ == '__main__':
         pico.set_data_buffer()
         pico.run_streaming()
         time.sleep(0.5)
-        for step in xrange(5):
-            time.sleep(10)
+        for step in xrange(60):
+            time.sleep(1)
             pico.get_streaming_latest_values()
         time.sleep(0.5)
         pico.stop_sampling()
