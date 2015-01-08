@@ -10,6 +10,7 @@ import scipy.signal as signal
 import matplotlib.pyplot as plt
 import scipy.io as sio
 import scipy.io as io
+import analysingMeasurement as ana
 
 
 
@@ -37,6 +38,7 @@ f_line = 50
 fs = 4000
 
 u = np.load('testwerte1.npy')
+#u = ana.example_sin_wave(2400000, 4000)
 
 ## Block 1: Modulierung des Spannungssignals
 
