@@ -12,6 +12,7 @@ import scipy.io as sio
 import scipy.io as io
 
 
+
 """
 ##############################################################################
 Berechung des Kurzzeitflickerwertes über eine Zeitspanne von 10min.
@@ -30,14 +31,12 @@ Output:
 time1 = time.time()
 
 show_time_signals = 0           #Aktivierung des Plots der Zeitsignale im Flickermeter
-show_filter_responses = 1       #Aktivierung des Plots der Amplitudengänge der Filter.
+show_filter_responses = 0       #Aktivierung des Plots der Amplitudengänge der Filter.
                                 #(zu Prüfzecken der internen Filter)
-    
 f_line = 50
 fs = 4000
 
-#u = ana.load_measurepoints(50000)
-u = np.load('testwerte.npy')
+u = np.load('testwerte1.npy')
 
 ## Block 1: Modulierung des Spannungssignals
 
