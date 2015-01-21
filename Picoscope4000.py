@@ -12,12 +12,17 @@ import time
 import datetime
 import os
 import platform
+import ConfigParser
 
 libname_christoph = 'C:\Program Files\Pico Technology\PicoScope6\ps4000A.dll'
 libname_micha = 'C:\Program Files (x86)\Pico Technology\PicoScope6\ps4000A.dll'
 libname_pokini = '/opt/picoscope/lib/libps4000a.so'
 
+parameterfilestring = 'parameters.ini'
+
 datadirectory_pokini = '/home/kipfer/pqpico/Data'
+
+
 # if 1, prints diagnostics to standard output
 VERBOSE = 1
 # If 1, generates profile.txtpicotec
@@ -72,10 +77,6 @@ ANALOG_OFFSET_0V = 0# 0V offset
 MAX_Y = 32768
 MIN_Y = -32767
 
-# Flank Definitions for Triggering
-PS2000_RISING = 0
-PS2000_FALLING = 1
-
 # Time Units
 FEMTOSECONDS = 0
 PICOSECONDS = 1
@@ -95,11 +96,14 @@ else:
      
 class Picoscope4000:
     def __init__(self):
+        # These can be overridden by parameters.ini:
         self.handle = None
         self.channels = [0,0]
         self.streaming_sample_interval = ctypes.c_uint(100)
         self.streaming_sample_interval_unit = 3
         self.streaming_buffer_length = 10000000
+        
+        self.apply_parameters()
 
         # load the library
         if platform.system() == 'Windows':
@@ -111,7 +115,30 @@ class Picoscope4000:
 
         # open the picoscope
         self.handle = self.open_unit()
-     
+
+# Load parameters from parameters.ini
+    def apply_parameters(self):
+        if VERBOSE:
+            print('==== apply_parameters ====')
+        configparser = ConfigParser.ConfigParser()
+        configparser.read(parameterfilestring)
+        inisections = cparser.sections()
+
+        parameters = {}
+
+        for section in inisections:
+            if VERBOSE:
+                print('-- ['+section+']')
+            for parameter in cparser.options(section):
+                value = cparser.get(section,opt)
+                if VERBOSE:
+                    print('   - '+opt+' : '+value)
+                parameters[opt] = value
+
+        # Make all parameters self variables:
+        self.__dict__.update(parameters)
+             
+                 
         
 # Basic Open and Close operations
     def open_unit(self):
@@ -308,16 +335,6 @@ class Picoscope4000:
         finally:
             pass
         return res    
-
-# Checking Buffer Overflow
-    def overview_buffer_status(self):
-        streaming_buffer_overflow = ctypes.c_bool(1)
-        res = self.lib.ps2000_overview_buffer_status(self.handle, ctypes.byref(streaming_buffer_overflow))
-        print('Overflow Error: ',str(res))
-        return streaming_buffer_overflow.value
-    def getPicoStatusString(self, errorcode):
-        pass
-
 
 if __name__ == '__main__':
 
