@@ -97,8 +97,8 @@ class Picoscope4000:
     def __init__(self):
         self.handle = None
         self.channels = [0,0]
-        self.streaming_sample_interval = ctypes.c_uint(1)
-        self.streaming_sample_interval_unit = 3
+        self.streaming_sample_interval = ctypes.c_uint(10)
+        self.streaming_sample_interval_unit = 4
         self.streaming_buffer_length = 10000000
 
         # load the library
@@ -329,7 +329,7 @@ if __name__ == '__main__':
         pico.set_data_buffer()
         pico.run_streaming()
         time.sleep(0.5)
-        for step in xrange(60):
+        for step in xrange(20):
             time.sleep(1)
             pico.get_streaming_latest_values()
         time.sleep(0.5)
