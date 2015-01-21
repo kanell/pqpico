@@ -97,8 +97,8 @@ class Picoscope4000:
     def __init__(self):
         self.handle = None
         self.channels = [0,0]
-        self.streaming_sample_interval = ctypes.c_uint(10)
-        self.streaming_sample_interval_unit = 4
+        self.streaming_sample_interval = ctypes.c_uint(100)
+        self.streaming_sample_interval_unit = 3
         self.streaming_buffer_length = 10000000
 
         # load the library

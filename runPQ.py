@@ -1,4 +1,4 @@
-import Picoscope 4000
+import Picoscope4000
 import threading
 
 def prepareMeasurement():
