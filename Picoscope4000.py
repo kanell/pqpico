@@ -11,6 +11,7 @@ import numpy as np
 import time
 import datetime
 import os
+import shutil
 import platform
 import ConfigParser
 
@@ -20,6 +21,7 @@ libname_pokini = '/opt/picoscope/lib/libps4000a.so'
 
 parameterfilestring = 'parameters.ini'
 
+codedirectory_pokini = '/home/kifper/pqpico'
 datadirectory_pokini = '/home/kipfer/pqpico/Data'
 
 
@@ -85,7 +87,15 @@ MICROSECONDS = 3
 MILLISECONDS = 4
 SECONDS = 5
 
-                
+# Strings for Sample Rate
+SAMPLERATE_MAP = {
+0:'T',
+1:'G',
+2:'M',
+3:'k',
+4:'',
+5:'',
+}
 
 # Set the correct dll as  LIBNAME
 if sys.platform == 'win32':
@@ -289,14 +299,28 @@ class Picoscope4000:
     def run_streaming(self, downSampleRatio=1, downSampleRatioMode=0):
         if VERBOSE:
             print('==== RunStreaming ====')
-        sampleIntervalTimeUnit = self.streaming_sample_interval_unit
+
+        #Generate new folder for streaming data
+        samplerate_string = str(1000/self.streaming_sample_interval)+SAMPLERATE_MAP[self.streaming_sample_interval]
+        foldername = datetime.datetime.now().strftime('_%Y_%m_%d__%H_%M_%S__'+samplerate_string)
+        # -> results in a foldername like '2015_01_22__22_32_40__500k'
+        folder = os.path.join(datadirectory,foldername))
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+
+        if VERBOSE:
+            print('Data will be saved to '+str(folder))
+        
+        # Copy parameters.ini into the folder
+        shutil.copy2(os.path.join(codedirectory_pokini,'parameters.ini',folder)
+
         try:
             autoStop=0
             maxPreTriggerSamples=None
             maxPostTriggerSamples=None
             res = self.lib.ps4000aRunStreaming(self.handle,
                     ctypes.byref(self.streaming_sample_interval),
-                    sampleIntervalTimeUnit,
+                    self.streaming_sample_interval_unit,
                     maxPreTriggerSamples,
                     maxPostTriggerSamples,
                     autoStop,
