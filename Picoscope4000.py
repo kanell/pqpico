@@ -309,10 +309,10 @@ class Picoscope4000:
             os.makedirs(folder)
 
         if VERBOSE:
-            print('Data will be saved to '+str(folder))
+            print(' Data will be saved to '+str(folder))
         
         # Copy parameters.ini into the folder
-        shutil.copy2(os.path.join(codedirectory_pokini,'parameters.ini',folder)
+        shutil.copy2(os.path.join(codedirectory_pokini,'parameters.ini'),folder)
 
         try:
             autoStop=0
