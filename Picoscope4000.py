@@ -21,7 +21,7 @@ libname_pokini = '/opt/picoscope/lib/libps4000a.so'
 
 parameterfilestring = 'parameters.ini'
 
-codedirectory_pokini = '/home/kifper/pqpico'
+codedirectory_pokini = '/home/kipfer/pqpico'
 datadirectory_pokini = '/home/kipfer/pqpico/Data'
 
 
@@ -113,9 +113,10 @@ class Picoscope4000:
         self.streaming_sample_interval_unit = 3
         self.streaming_buffer_length = 10000000
         
-        #self.apply_parameters()
-        #self.streaming_sample_interval = ctypes.c_uint(self.streaming_sample_interval)
-        
+        self.apply_parameters()
+        print(type(self.streaming_sample_interval))
+        self.streaming_sample_interval = ctypes.c_uint(self.streaming_sample_interval)
+                
         print(self.__dict__)
 
         # load the library
@@ -135,18 +136,18 @@ class Picoscope4000:
             print('==== apply_parameters ====')
         configparser = ConfigParser.ConfigParser()
         configparser.read(parameterfilestring)
-        inisections = cparser.sections()
+        inisections = configparser.sections()
 
         parameters = {}
 
         for section in inisections:
             if VERBOSE:
                 print('-- ['+section+']')
-            for parameter in cparser.options(section):
-                value = cparser.get(section,opt)
+            for parameter in configparser.options(section):
+                value = configparser.get(section,parameter)
                 if VERBOSE:
-                    print('   - '+opt+' : '+value)
-                parameters[opt] = value
+                    print('   - '+parameter+' : '+value)
+                parameters[parameter] = int(value)
 
         # Make all parameters self variables:
         self.__dict__.update(parameters)
@@ -290,7 +291,8 @@ class Picoscope4000:
             data_CH1 = self.channel_A_buffer[startIndex:startIndex+noOfSamples]
             if VERBOSE:
                 print('--> Number of samples saved: '+str(len(data_CH1)))
-            np.save(os.path.normpath(DATADIRECTORY)+'/'+CH1,data_CH1)
+
+            np.save(os.path.join(self.folder,filename),data_CH1)
             #np.save(path2,streamed_data_CH2)
             #print('File saved:',CH1,CH2)
             
@@ -302,26 +304,29 @@ class Picoscope4000:
     def run_streaming(self, downSampleRatio=1, downSampleRatioMode=0):
         if VERBOSE:
             print('==== RunStreaming ====')
-<<<<<<< HEAD
         #prepareMeasurements
         sampleIntervalTimeUnit = self.streaming_sample_interval_unit
-=======
 
         #Generate new folder for streaming data
-        samplerate_string = str(1000/self.streaming_sample_interval)+SAMPLERATE_MAP[self.streaming_sample_interval]
-        foldername = datetime.datetime.now().strftime('_%Y_%m_%d__%H_%M_%S__'+samplerate_string)
+        if self.streaming_sample_interval.value == 1:
+            samplerate_string = str('1')+SAMPLERATE_MAP[self.streaming_sample_interval_unit-1]
+        else:
+            samplerate_string = str(1000/self.streaming_sample_interval.value)+SAMPLERATE_MAP[self.streaming_sample_interval_unit]
+        foldername = datetime.datetime.now().strftime('%Y_%m_%d__%H_%M_%S__'+samplerate_string+'S')
         # -> results in a foldername like '2015_01_22__22_32_40__500k'
-        folder = os.path.join(datadirectory,foldername))
+        folder = os.path.join(datadirectory_pokini,foldername)
+        self.folder = folder
         if not os.path.exists(folder):
             os.makedirs(folder)
 
+        print(self.folder)
+        
         if VERBOSE:
             print(' Data will be saved to '+str(folder))
         
         # Copy parameters.ini into the folder
         shutil.copy2(os.path.join(codedirectory_pokini,'parameters.ini'),folder)
 
->>>>>>> e7467b9d1658534088ee11c5d27114c4d22b5056
         try:
             autoStop=0
             maxPreTriggerSamples=None
@@ -378,7 +383,7 @@ if __name__ == '__main__':
         pico.set_data_buffer()
         pico.run_streaming()
         time.sleep(0.5)
-        for step in xrange(10):
+        for step in xrange(3):
             time.sleep(0.2)
             pico.get_streaming_latest_values()
         time.sleep(0.5)
