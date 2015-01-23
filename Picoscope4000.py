@@ -99,11 +99,14 @@ class Picoscope4000:
         # These can be overridden by parameters.ini:
         self.handle = None
         self.channels = [0,0]
-        self.streaming_sample_interval = ctypes.c_uint(100)
+        self.streaming_sample_interval = ctypes.c_uint(1)
         self.streaming_sample_interval_unit = 3
         self.streaming_buffer_length = 10000000
         
-        self.apply_parameters()
+        #self.apply_parameters()
+        #self.streaming_sample_interval = ctypes.c_uint(self.streaming_sample_interval)
+        
+        print(self.__dict__)
 
         # load the library
         if platform.system() == 'Windows':
@@ -289,6 +292,7 @@ class Picoscope4000:
     def run_streaming(self, downSampleRatio=1, downSampleRatioMode=0):
         if VERBOSE:
             print('==== RunStreaming ====')
+        #prepareMeasurements
         sampleIntervalTimeUnit = self.streaming_sample_interval_unit
         try:
             autoStop=0
@@ -346,8 +350,8 @@ if __name__ == '__main__':
         pico.set_data_buffer()
         pico.run_streaming()
         time.sleep(0.5)
-        for step in xrange(20):
-            time.sleep(1)
+        for step in xrange(10):
+            time.sleep(0.2)
             pico.get_streaming_latest_values()
         time.sleep(0.5)
         pico.stop_sampling()
