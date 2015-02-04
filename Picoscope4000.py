@@ -331,6 +331,7 @@ class Picoscope4000:
             autoStop=0
             maxPreTriggerSamples=None
             maxPostTriggerSamples=None
+            print(' Streaming Sample Interval before: '+str(self.streaming_sample_interval.value))
             res = self.lib.ps4000aRunStreaming(self.handle,
                     ctypes.byref(self.streaming_sample_interval),
                     self.streaming_sample_interval_unit,
@@ -347,8 +348,10 @@ class Picoscope4000:
         finally:
             pass
 
-    def get_Timebase(self, timebase=79,noSamples=1000,segmentIndex= 1):
+    def get_Timebase(self, timebase=99,noSamples=1000,segmentIndex= 1):
         try:
+            self.timeIntervalNS = ctypes.c_uint(0)
+            self.maxSamples = ctypes.c_uint(0)
             res=self.lib.ps4000aGetTimebase(self.handle, timebase, noSamples, ctypes.byref(self.timeIntervalNS),ctypes.byref(self.maxSamples),None)
             print('TimeInterval_Ns: '+ str(self.timeIntervalNS))
             print('maxSamples: '+str(self.maxSamples))
@@ -379,7 +382,7 @@ if __name__ == '__main__':
     try:
         #Set up Picoscope for continuous streaming
         pico.set_channel()
-        #pico.get_Timebase()
+        pico.get_Timebase()
         pico.set_data_buffer()
         pico.run_streaming()
         time.sleep(0.5)
