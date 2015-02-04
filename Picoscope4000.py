@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+    # -*- coding: utf-8 -*-
 """
 Created on Mon Sep  8 09:41:22 2014
 
@@ -109,13 +109,13 @@ class Picoscope4000:
     def __init__(self):
         # These can be overridden by parameters.ini:
         self.handle = None
-        self.channels = [0,0]
-        self.streaming_sample_interval = ctypes.c_uint(1)
-        self.streaming_sample_interval_unit = 3
-        self.streaming_buffer_length = 10000000
+        #self.channels = [0,0]
+        #self.streaming_sample_interval = ctypes.c_uint(1)
+        #self.streaming_sample_interval_unit = 3
+        #self.streaming_buffer_length = 10000000
         
+        # Load and apply parameters from the parameters.ini-file in the codedirectory
         self.apply_parameters()
-        print(type(self.streaming_sample_interval))
         self.streaming_sample_interval = ctypes.c_uint(self.streaming_sample_interval)
                 
         print(self.__dict__)
@@ -133,6 +133,12 @@ class Picoscope4000:
 
         # open the picoscope
         self.handle = self.open_unit()
+        self.set_channel()
+        self.get_Timebase()
+        self.set_data_buffer()
+
+        # make sure all settings are applied by the picoscope
+        time.sleep(0.2)
 
 # Load parameters from parameters.ini
     def apply_parameters(self):
@@ -365,13 +371,14 @@ class Picoscope4000:
         finally:
             pass
 
-#Actually retrieve the data on the pc
+# Actually retrieve the data on the pc
     def get_streaming_latest_values(self):
         buffer_callback = self.construct_buffer_callback()
         res = self.lib.ps4000aGetStreamingLatestValues(self.handle, buffer_callback)
         
         return res
 
+# Provide Access to the data in the queue, type is np.array
     def get_queue_data(self):
         if not self.dataqueue.empty():
             return self.dataqueue.get()
@@ -380,7 +387,7 @@ class Picoscope4000:
     
     def stop_sampling(self):
         try:
-            res=self.lib.ps4000aStop(self.handle)
+            res = self.lib.ps4000aStop(self.handle)
             if VERBOSE:
                 print('Stopping sampling of Scope')
                 print('Result: '+str(res)+' (0= PICO_OK)')
@@ -390,14 +397,9 @@ class Picoscope4000:
 
 if __name__ == '__main__':
 
-    pico = Picoscope4000()
     try:
-        #Set up Picoscope for continuous streaming
-        pico.set_channel()
-        pico.get_Timebase()
-        pico.set_data_buffer()
+        pico = Picoscope4000()
         pico.run_streaming()
-        time.sleep(0.5)
         for step in xrange(3):
             time.sleep(0.2)
             pico.get_streaming_latest_values()
