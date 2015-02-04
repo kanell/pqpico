@@ -8,11 +8,7 @@ import time
 import numpy as np
 import scipy.signal as signal
 import matplotlib.pyplot as plt
-import scipy.io as sio
-import scipy.io as io
-import analysingMeasurement as ana
-
-
+import analysingMeasurement as a
 
 """
 ##############################################################################
@@ -35,12 +31,16 @@ show_time_signals = 0           #Aktivierung des Plots der Zeitsignale im Flicke
 show_filter_responses = 0       #Aktivierung des Plots der Amplitudengänge der Filter.
                                 #(zu Prüfzecken der internen Filter)
 f_line = 50
-fs = 4000
+#fs = 4000
 
-def calculate_Pst():    
-    u = np.load('testwerte1.npy')
+def calculate_Pst(u, fs):    
+    step = int(fs/4000)
+    delta = np.arange(0,len(u),step)
+    u =u[delta]
+    fs = 4000    
     #u = ana.example_sin_wave(2400000, 4000)
-    
+    #u = np.load('heizung_test.npy') #ACHTUNG!!! fs = 2000 
+       
     ## Block 1: Modulierung des Spannungssignals
     
     u = u - np.mean(u)                      # entfernt DC-Anteil
@@ -195,4 +195,11 @@ def calculate_Pst():
         plt.grid(True)
         plt.axis([0, 35, 0, 1])
         
-        return P_st
+    return P_st
+
+if __name__ == '__main__':    
+    u = np.load('CH1_20150122_16_01_04_552207.npy')   
+    u = u[:(2**round(np.log(100000)/np.log(2)))]    
+    u1, u2, u3 = a.example_sin_waves(2400000,4000)
+    Pst = calculate_Pst(u1,4000)
+    print("Pst = " + str(Pst))
