@@ -148,7 +148,7 @@ class Picoscope4000:
         configparser.read(parameterfilestring)
         inisections = configparser.sections()
 
-        parameters = {}
+        self.parameters = {}
 
         for section in inisections:
             if VERBOSE:
@@ -157,10 +157,15 @@ class Picoscope4000:
                 value = configparser.get(section,parameter)
                 if VERBOSE:
                     print('   - '+parameter+' : '+value)
-                parameters[parameter] = int(value)
+                self.parameters[parameter] = int(value)
 
         # Make all parameters self variables:
-        self.__dict__.update(parameters)
+        self.__dict__.update(self.parameters)
+
+# return parameters dictionary
+    def get_parameters(self):
+        return self.parameters
+
              
                  
         
