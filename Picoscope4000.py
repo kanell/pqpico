@@ -14,6 +14,7 @@ import os
 import shutil
 import platform
 import ConfigParser
+import Queue
 
 libname_christoph = 'C:\Program Files\Pico Technology\PicoScope6\ps4000A.dll'
 libname_micha = 'C:\Program Files (x86)\Pico Technology\PicoScope6\ps4000A.dll'
@@ -126,6 +127,9 @@ class Picoscope4000:
             self.lib = ctypes.cdll.LoadLibrary(LIBNAME)
         else:
             print('Unknown Platform')
+
+        # Open Data Queue
+        self.dataqueue = Queue.Queue()
 
         # open the picoscope
         self.handle = self.open_unit()
@@ -292,7 +296,8 @@ class Picoscope4000:
             if VERBOSE:
                 print('--> Number of samples saved: '+str(len(data_CH1)))
 
-            np.save(os.path.join(self.folder,filename),data_CH1)
+            self.dataqueue.put(data_CH1)
+            #np.save(os.path.join(self.folder,filename),data_CH1)
             #np.save(path2,streamed_data_CH2)
             #print('File saved:',CH1,CH2)
             
@@ -353,9 +358,10 @@ class Picoscope4000:
             self.timeIntervalNS = ctypes.c_uint(0)
             self.maxSamples = ctypes.c_uint(0)
             res=self.lib.ps4000aGetTimebase(self.handle, timebase, noSamples, ctypes.byref(self.timeIntervalNS),ctypes.byref(self.maxSamples),None)
-            print('TimeInterval_Ns: '+ str(self.timeIntervalNS))
-            print('maxSamples: '+str(self.maxSamples))
-            print(res)
+            if VERBOSE:
+                print('TimeInterval_Ns: '+ str(self.timeIntervalNS))
+                print('maxSamples: '+str(self.maxSamples))
+                print(res)
         finally:
             pass
 
@@ -365,6 +371,12 @@ class Picoscope4000:
         res = self.lib.ps4000aGetStreamingLatestValues(self.handle, buffer_callback)
         
         return res
+
+    def get_queue_data(self):
+        if not self.dataqueue.empty():
+            return self.dataqueue.get()
+        else:
+            return None
     
     def stop_sampling(self):
         try:
