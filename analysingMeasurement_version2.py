@@ -169,7 +169,7 @@ class analysingMeasurement:
             print("THD zu hoch: THD_S = " + str(self.THD_KlasseS))
         return self.THD_KlasseS
     
-    def calculate_phasediff(self):
+    def calculate_phasediff(self): ##funktioniert noch nicht##
         m1,m2,m3 = self.example_sin_waves(SAMPLEPOINTS, SAMPLING_RATE)
         a = np.e**(120j)
         F_matrix = np.matrix([[1,1,1],[1,a,a**2],[1,a**2,a]])

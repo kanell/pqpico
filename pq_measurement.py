@@ -1,37 +1,121 @@
 # -*- coding: utf-8 -*-
 """
-Created on Mon Nov 17 09:36:56 2014
+Created on Wed Feb  4 18:02:43 2015
 
 @author: Malte Gerber
 """
-import time
+
 import numpy as np
-import scipy.signal as signal
 import matplotlib.pyplot as plt
-import analysingMeasurement as a
+import scipy.signal as signal
 
-"""
-##############################################################################
-Berechung des Kurzzeitflickerwertes über eine Zeitspanne von 10min.
+##__Konstanten__##
 
-Pst = flicker(u, f_line, fs)
+V_max = 32768/50
+R1 = 993000 #Ohm
+R2 = 82400*1000000/(82400+1000000) #Ohm
+Resolution = (R1+R2)/R2
+f_line = 50 #Hz
+measured_frequency = 50
 
-Inputs:
-    u:          Spannungsverlauf
-    f_line:     Netzfrequenz (50Hz od. 60Hz)
-    fs:         Abtastrate
+##__Funktionen__##
 
-Output:
-    Pst:        Kurzzeitflicker
-##############################################################################
-"""
-time1 = time.time()
+def Lowpass_Filter(data, SAMPLING_RATE):
+    show_filtered_measurement = 0    
+    b_hp, a_hp = signal.butter(1, (2100/(SAMPLING_RATE/2)), 'lowpass')
+    data_filtered = signal.lfilter(b_hp, a_hp, data)
+    
+    if (show_filtered_measurement):
+        plt.plot(data, 'b') 
+        plt.plot(data_filtered, 'r')
+        plt.xlim(0, 40000)
+        plt.grid(True)
+    return data_filtered
+            
+def calculate_Frequency(SAMPLING_RATE, data):        
+    t = crossings_nonzero_all(data, SAMPLING_RATE)
+    freq_sample = (t[len(t)-1]-t[0])/(len(t)-1)*2
+    measured_frequency = SAMPLING_RATE/freq_sample
+            
+    return measured_frequency, freq_sample
+        
+def crossings_nonzero_all(data, SAMPLING_RATE):
+    data_filtered = Lowpass_Filter(data, SAMPLING_RATE)    
+    pos = data_filtered > 0
+    npos = ~pos
+    return ((pos[:-1] & npos[1:]) | (npos[:-1] & pos[1:])).nonzero()[0]
 
-show_time_signals = 0           #Aktivierung des Plots der Zeitsignale im Flickermeter
-show_filter_responses = 0       #Aktivierung des Plots der Amplitudengänge der Filter.
-                                #(zu Prüfzecken der internen Filter)
-f_line = 50
-
+def fast_fourier_transformation(data, SAMPLING_RATE):
+    plot_FFT = 0    #Show FFT Signal Plot        
+    #berechnen der Fouriertransformation        
+    FFTdata = np.fft.fftshift(np.fft.fft(data))/len(data)     
+    #Frequenzen der Oberschwingungen    
+    FFTfrequencys = np.fft.fftfreq(len(FFTdata), 1.0/SAMPLING_RATE)
+    #wegkürzen der neczgativen frequenzen und dafür verdoppeln der Amplituden
+    FFTdata = np.abs(FFTdata[(len(FFTdata)/2):])*2
+    
+    if (plot_FFT):
+        plt.plot(FFTfrequencys[:len(FFTdata)], FFTdata) #Plot der Messwerte der FFT über die gegebene x-Achse fMax
+        plt.xlabel("f in Hz") # y-Achse beschriefen
+        plt.ylabel("FFT") # x-Achse beschriften
+        plt.xlim([0,1500]) # länge der angezeigten x-Achse
+    
+    return FFTdata, FFTfrequencys
+        
+def calculate_rms(data):
+    #Der Effektivwert wird ueber alle Messpunkte gebildet             
+    rms_points = np.sqrt(np.mean(np.power(data, 2)))
+    rms = rms_points/V_max*Resolution
+    if (rms <= (0.9*230) and rms >= (0.1*230)):
+        print ("Es ist eine Unterspannung aufgetreten!")
+        #t.append(rms)
+    elif rms < 0.1*230:
+        print("Es liegt eine Spannungunterbrechung vor!")
+        #t.append(rms)
+    elif rms > 1.1*230:
+        print ("Es ist eine Überspannung aufgetreten!")
+        #t.append(rms)
+    else:
+        print("Alles OK!")
+        #t.append(rms)
+    return rms
+        
+def calculate_THD_KlasseA(data, SAMPLING_RATE):
+    FFTdata, FFTfrequencys = fast_fourier_transformation(data, SAMPLING_RATE)        
+    THD = 0 #Startwert der THD
+    Bereich_Amplituden = round(len(data)/float(SAMPLING_RATE)*measured_frequency) #an dieser Stelle sollte sich der Amplitudenausschlag der Oberschwingung befinden           
+    for i in range(1,41): 
+        #Berechnung des THD-Wertes über eine for-Schleife        
+        THD_Amplituden = np.sum(FFTdata[int(Bereich_Amplituden*i-1):int(Bereich_Amplituden*i+2)]**2) #direkter Amplitudenwert aus FFT           
+        THD = THD + THD_Amplituden
+        if (i==1):
+            erste_Oberschwingung = THD
+            THD = 0
+    THD_KlasseA = np.sqrt(THD/(erste_Oberschwingung))*100 #darf nicht größer als 8% betragen
+    if THD_KlasseA <= 8:
+        print("THD_A ist OK!")
+    else:
+        print("THD zu hoch: THD_A = " + str(THD_KlasseA))
+    return THD_KlasseA
+    
+def calculate_THD_KlasseS(data, SAMPLING_RATE):
+    FFTdata, FFTfrequencys = fast_fourier_transformation(data, SAMPLING_RATE)        
+    Gruppierung = 0
+    Bereich_Amplituden = len(data)/float(SAMPLING_RATE)*measured_frequency #an dieser Stelle sollte sich der Amplitudenausschlag der Oberschwingung befinden 
+    for i in range(1,41): 
+        Gruppierung_teil1 = 0.5*FFTdata[int(round(Bereich_Amplituden*i-Bereich_Amplituden/2))]**2
+        Gruppierung_teil2 = 0.5*FFTdata[int(round(Bereich_Amplituden*i+Bereich_Amplituden/2))]**2
+        Gruppierung_teil3 = np.sum(FFTdata[int(round(Bereich_Amplituden*i-Bereich_Amplituden/2)+1):int(round(Bereich_Amplituden*i+Bereich_Amplituden/2))]**2)       
+        Gruppierung = Gruppierung_teil1+Gruppierung_teil2+Gruppierung_teil3+Gruppierung
+        if (i==1):
+            erste_Oberschwingung = Gruppierung
+            Gruppierung = 0
+    THD_KlasseS = np.sqrt(Gruppierung/erste_Oberschwingung)*100
+    if THD_KlasseS <= 8:
+        print("THD_S ist OK!")
+    else:
+        print("THD zu hoch: THD_S = " + str(THD_KlasseS))
+    return THD_KlasseS
 
 def calculate_Pst(u, fs):    
     show_time_signals = 0           #Aktivierung des Plots der Zeitsignale im Flickermeter
@@ -138,10 +222,6 @@ def calculate_Pst(u, fs):
     
     P_st = np.sqrt(0.0314*p_0_1s+0.0525*p_1s+0.0657*p_3s+0.28*p_10s+0.08*p_50s)
     
-    
-    #time2 = time.time()
-    #print("Benötigte Zeit in Sekunden = " + str(time2-time1))
-    
     if (show_time_signals):
         t = np.linspace(0, len(u) / fs, num=len(u))
         plt.figure()
@@ -199,11 +279,5 @@ def calculate_Pst(u, fs):
         plt.grid(True)
         plt.axis([0, 35, 0, 1])
         
-    return P_st
-
-if __name__ == '__main__':    
-    u = np.load('CH1_20150122_16_01_04_552207.npy')   
-    u = u[:(2**round(np.log(100000)/np.log(2)))]    
-    u1, u2, u3 = a.example_sin_waves(2400000,4000)
-    Pst = calculate_Pst(u1,4000)
-    print("Pst = " + str(Pst))
+    return P_st 
+        
