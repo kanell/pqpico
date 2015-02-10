@@ -4,26 +4,30 @@ Created on Wed Feb  4 18:02:43 2015
 
 @author: Malte Gerber
 """
+###########------------Module----------------##############
 
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.signal as signal
 
-##__Konstanten__##
+########----------------Konstanten---------------############
 
 V_max = 32768/50
-R1 = 993000 #Ohm
-R2 = 82400*1000000/(82400+1000000) #Ohm
+R1 = 993000 # Ohm
+R2 = 82400*1000000/(82400+1000000) # Ohm
 Resolution = (R1+R2)/R2
-f_line = 50 #Hz
+f_line = 50 # Hz
 Class  = 1
 
+########------Initialisierung von globalen Listen-------##########
 
-##__Funktionen__##
+rms_list = []
+
+#########---------------Funktionen-------------------########
 
 def Lowpass_Filter(data, SAMPLING_RATE):
     show_filtered_measurement = 0    
-    b_hp, a_hp = signal.butter(1, (2100/(SAMPLING_RATE/2)), 'lowpass')
+    b_hp, a_hp = signal.butter(1, (2100.0/(SAMPLING_RATE/2.0)), 'lowpass')
     data_filtered = signal.lfilter(b_hp, a_hp, data)
     
     if (show_filtered_measurement):
@@ -35,7 +39,7 @@ def Lowpass_Filter(data, SAMPLING_RATE):
             
 def calculate_Frequency(SAMPLING_RATE, data):        
     t = detect_zero_crossings(data, SAMPLING_RATE)
-    freq_sample = (t[len(t)-1]-t[0])/(len(t)-1)*2
+    freq_sample = (t[len(t)-1]-t[0])/((len(t)-1)*2.0)
     measured_frequency = SAMPLING_RATE/freq_sample
             
     return measured_frequency, freq_sample
@@ -56,7 +60,7 @@ def fast_fourier_transformation(data, SAMPLING_RATE):
     FFTdata = np.abs(FFTdata[(len(FFTdata)/2):])*2
     
     if (plot_FFT):
-        plt.plot(FFTfrequencys[:len(FFTdata)], FFTdata) #Plot der Messwerte der FFT über die gegebene x-Achse fMax
+        plt.plot(FFTfrequencys[:len(FFTdata)], FFTdata)
         plt.xlabel("f in Hz") # y-Achse beschriefen
         plt.ylabel("FFT") # x-Achse beschriften
         plt.xlim([0,1500]) # länge der angezeigten x-Achse
@@ -67,25 +71,36 @@ def calculate_rms(data):
     #Der Effektivwert wird ueber alle Messpunkte gebildet             
     rms_points = np.sqrt(np.mean(np.power(data, 2)))
     rms = rms_points/V_max*Resolution
-    if (rms <= (0.9*230) and rms >= (0.1*230)):
+    rms_list.append(rms)
+#    if 'rms_list' not in locals():
+#        rms_list = [rms]         
+#    else:
+#        rms_list.append(rms)
+    return rms_list
+    
+def calculate_rms_half_period(data):
+    #Der Effektivwert wird ueber alle Messpunkte gebildet             
+    rms_points = np.sqrt(np.mean(np.power(data, 2)))
+    rms_half_period = rms_points/V_max*Resolution
+    if (rms_half_period <= (0.9*230) and rms_half_period >= (0.1*230)):
         print ("Es ist eine Unterspannung aufgetreten!")
-        #t.append(rms)
-    elif rms < 0.1*230:
+        ###----hier wird statt der ausgabe ein flag gesetzt-----######
+    elif rms_half_period < 0.1*230:
         print("Es liegt eine Spannungunterbrechung vor!")
-        #t.append(rms)
-    elif rms > 1.1*230:
+        ###----hier wird statt der ausgabe ein flag gesetzt-----######
+    elif rms_half_period > 1.1*230:
         print ("Es ist eine Überspannung aufgetreten!")
-        #t.append(rms)
+        ###----hier wird statt der ausgabe ein flag gesetzt-----######
     else:
         print("Alles OK!")
-        #t.append(rms)
-    return rms
+        ###----hier wird statt der ausgabe ein flag gesetzt-----######
+    return rms_half_period
         
 def calculate_harmonics_ClassA(data, SAMPLING_RATE):
     FFTdata, FFTfrequencys = fast_fourier_transformation(data, SAMPLING_RATE)        
     harmonics_amplitudes = np.array([])
     area_amplitudes = 10#round(len(data)/float(SAMPLING_RATE)*measured_frequency) #an dieser Stelle sollte sich der Amplitudenausschlag der Oberschwingung befinden           
-    for i in range(1,41): 
+    for i in xrange(1,41): 
         #Berechnung der Harmonischen über eine for-Schleife        
         harmonics_amplitudes = np.append(harmonics_amplitudes, (np.sum(FFTdata[int(area_amplitudes*i-1):int(area_amplitudes*i+2)]**2))) #direkter Amplitudenwert aus FFT
     return harmonics_amplitudes
@@ -94,7 +109,7 @@ def calculate_harmonics_ClassS(data, SAMPLING_RATE):
     FFTdata, FFTfrequencys = fast_fourier_transformation(data, SAMPLING_RATE)        
     harmonics_amplitudes = np.array([])
     area_amplitudes = 10#len(data)/float(SAMPLING_RATE)*measured_frequency #an dieser Stelle sollte sich der Amplitudenausschlag der Oberschwingung befinden 
-    for i in range(1,41): 
+    for i in xrange(1,41): 
         grouping_part1 = 0.5*FFTdata[int(round(area_amplitudes*i-area_amplitudes/2))]**2
         grouping_part2 = 0.5*FFTdata[int(round(area_amplitudes*i+area_amplitudes/2))]**2
         grouping_part3 = np.sum(FFTdata[int(round(area_amplitudes*i-area_amplitudes/2)+1):int(round(area_amplitudes*i+area_amplitudes/2))]**2)       
@@ -126,10 +141,10 @@ def calculate_Pst(data):
     
     LOWPASS_ORDER = 6 #Ordnungszahl des Tiefpassfilters
     if (f_line == 50):
-      LOWPASS_CUTOFF = 35 #Hz Grenzfrequenz
+      LOWPASS_CUTOFF = 35.0 #Hz Grenzfrequenz
     
     if (f_line == 60):
-      LOWPASS_CUTOFF = 42 #Hz Grenzfrequenz
+      LOWPASS_CUTOFF = 42.0 #Hz Grenzfrequenz
     
     # subtract DC component to limit filter transients at start of simulation
     u_0_ac = u_0 - np.mean(u_0)
@@ -260,13 +275,9 @@ def calculate_Pst(data):
         
     return P_st 
         
-def calculate_150_Period_value(values_10_periods):
-    value_150_period = np.sqrt(np.sum(np.power(values_10_periods,2), axis=0)/len(values_10_periods))
-    return value_150_period
-    
-def calculate_10min_value(values_150_period):
-    value_10min = np.sqrt(np.sum(np.power(values_150_period,2), axis=0)/len(values_150_period))
-    return value_10min
+def count_up_values(values_list):
+    new_value = np.sqrt(np.sum(np.power(values_list,2), axis=0)/len(values_list))
+    return new_value
     
 def convert_data_to_lower_fs(data, SAMPLING_RATE):
     step = int(SAMPLING_RATE/4000)
@@ -302,4 +313,5 @@ def test_harmonics(data, SAMPLING_RATE):
         harmonics_amplitudes = calculate_harmonics_ClassS(data, SAMPLING_RATE)
     else:
         None
+    
     return 0

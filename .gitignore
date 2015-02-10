@@ -220,3 +220,4 @@ pq_daten/20150123_16_10_42_865136.npy
 *.h
 *.m
 test_ordner/testlauf.py
+runPQ2_test.py
