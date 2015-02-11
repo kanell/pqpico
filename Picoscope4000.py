@@ -109,7 +109,7 @@ class Picoscope4000:
     def __init__(self):
         # These can be overridden by parameters.ini:
         self.handle = None
-        #self.channels = [0,0]
+        self.channels = [0,0]
         #self.streaming_sample_interval = ctypes.c_uint(1)
         #self.streaming_sample_interval_unit = 3
         #self.streaming_buffer_length = 10000000
@@ -328,15 +328,13 @@ class Picoscope4000:
             samplerate_string = str('1')+SAMPLERATE_MAP[self.streaming_sample_interval_unit-1]
         else:
             samplerate_string = str(1000/self.streaming_sample_interval.value)+SAMPLERATE_MAP[self.streaming_sample_interval_unit]
-        foldername = datetime.datetime.now().strftime('%Y_%m_%d__%H_%M_%S__'+samplerate_string+'S')
+        foldername = datetime.datetime.now().strftime('%Y-%m-%d__%H-%M-%S__'+samplerate_string+'S')
         # -> results in a foldername like '2015_01_22__22_32_40__500k'
         folder = os.path.join(datadirectory_pokini,foldername)
         self.folder = folder
         if not os.path.exists(folder):
             os.makedirs(folder)
 
-        print(self.folder)
-        
         if VERBOSE:
             print(' Data will be saved to '+str(folder))
         
@@ -401,9 +399,12 @@ class Picoscope4000:
         return res    
 
 if __name__ == '__main__':
-
     try:
         pico = Picoscope4000()
+    except:
+        print('Error opening Picoscope')
+
+    try:
         pico.run_streaming()
         for step in xrange(3):
             time.sleep(0.2)
