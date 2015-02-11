@@ -19,17 +19,26 @@ f_line = 50 #Hz
 measured_frequency = 50
 
 ##__Funktionen__##
+def moving_average(a,n=5):
+    ret = np.cumsum(a,dtype=float)
+    ret[n:] = ret[n:] - ret[:-n]
+    return np.append(np.ones(n-1),ret[n-1:]/n)
 
 def Lowpass_Filter(data, SAMPLING_RATE):
-    show_filtered_measurement = 0    
-    b_hp, a_hp = signal.butter(1, (2100/(SAMPLING_RATE/2)), 'lowpass')
+    show_filtered_measurement = 1    
+    roundoff_freq = 2000.0
+    b_hp, a_hp = signal.butter(1, round(roundoff_freq / SAMPLING_RATE / 2,5))
+    print('WP: '+str(round(roundoff_freq/SAMPLING_RATE/2)))
+    #b_hp, a_hp = signal.butter(1, 0.001)
+    print(str(b_hp))
     data_filtered = signal.lfilter(b_hp, a_hp, data)
     
     if (show_filtered_measurement):
         plt.plot(data, 'b') 
         plt.plot(data_filtered, 'r')
-        plt.xlim(0, 40000)
+        plt.xlim(0, 100000)
         plt.grid(True)
+        plt.show()
     return data_filtered
             
 def calculate_Frequency(SAMPLING_RATE, data):        
@@ -40,7 +49,14 @@ def calculate_Frequency(SAMPLING_RATE, data):
     return measured_frequency, freq_sample
         
 def detect_zero_crossings(data, SAMPLING_RATE):
-    data_filtered = Lowpass_Filter(data, SAMPLING_RATE)    
+    #data_filtered = Lowpass_Filter(data, SAMPLING_RATE)    
+    data_filtered = moving_average(data)
+    if True:
+        plt.plot(data, 'b') 
+        plt.plot(data_filtered, 'r')
+        plt.xlim(0, 100000)
+        plt.grid(True)
+        plt.show()
     pos = data_filtered > 0
     npos = ~pos
     return ((pos[:-1] & npos[1:]) | (npos[:-1] & pos[1:])).nonzero()[0]

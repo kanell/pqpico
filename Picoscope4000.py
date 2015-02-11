@@ -1,4 +1,4 @@
-    # -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 Created on Mon Sep  8 09:41:22 2014
 
@@ -308,6 +308,8 @@ class Picoscope4000:
                 print('--> Number of samples saved: '+str(len(data_CH1)))
 
             self.dataqueue.put(data_CH1)
+            if VERBOSE:
+                print('Dataqueue size: '+str(self.dataqueue.qsize()))
             #np.save(os.path.join(self.folder,filename),data_CH1)
             #np.save(path2,streamed_data_CH2)
             #print('File saved:',CH1,CH2)
@@ -329,7 +331,7 @@ class Picoscope4000:
         else:
             samplerate_string = str(1000/self.streaming_sample_interval.value)+SAMPLERATE_MAP[self.streaming_sample_interval_unit]
         foldername = datetime.datetime.now().strftime('%Y-%m-%d__%H-%M-%S__'+samplerate_string+'S')
-        # -> results in a foldername like '2015_01_22__22_32_40__500k'
+        # -> results in a foldername like '2015-01-22__22-32-40__500k'
         folder = os.path.join(datadirectory_pokini,foldername)
         self.folder = folder
         if not os.path.exists(folder):
@@ -383,6 +385,7 @@ class Picoscope4000:
 
 # Provide Access to the data in the queue, type is np.array
     def get_queue_data(self):
+        self.get_streaming_latest_values()
         if not self.dataqueue.empty():
             return self.dataqueue.get()
         else:
@@ -409,6 +412,7 @@ if __name__ == '__main__':
         for step in xrange(3):
             time.sleep(0.2)
             pico.get_streaming_latest_values()
+            print(str(len(pico.get_queue_data())))
         time.sleep(0.5)
         pico.stop_sampling()
     finally:      
