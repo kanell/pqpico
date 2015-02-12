@@ -22,7 +22,7 @@ measured_frequency = 50
 def moving_average(a,n=5):
     ret = np.cumsum(a,dtype=float)
     ret[n:] = ret[n:] - ret[:-n]
-    return np.append(np.ones(n-1),ret[n-1:]/n)
+    return np.append(np.ones(n/2),ret[n-1:]/n)
 
 def Lowpass_Filter(data, SAMPLING_RATE):
     show_filtered_measurement = 1    
