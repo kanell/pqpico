@@ -39,7 +39,7 @@ try:
         data_chunk = data[:min_snippet_length]
         zero_indices = pq.detect_zero_crossings(data_chunk ,parameters['streaming_sample_interval'])
         print('data_chunk: '+str(data_chunk))
-        print('zero_inices: '+str(zero_indices))
+        print('zero_indices: '+str(zero_indices))
         print(np.diff(zero_indices))   
         plt.plot(np.diff(zero_indices), 'b') 
         plt.grid(True)

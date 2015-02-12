@@ -19,7 +19,7 @@ f_line = 50 #Hz
 measured_frequency = 50
 
 ##__Funktionen__##
-def moving_average(a,n=5):
+def moving_average(a,n=15):
     ret = np.cumsum(a,dtype=float)
     ret[n:] = ret[n:] - ret[:-n]
     return np.append(np.ones(n/2),ret[n-1:]/n)
@@ -51,16 +51,19 @@ def calculate_Frequency(SAMPLING_RATE, data):
 def detect_zero_crossings(data, SAMPLING_RATE):
     #data_filtered = Lowpass_Filter(data, SAMPLING_RATE)    
     data_filtered = moving_average(data)
+    pos = data_filtered > 0
+    npos = ~pos
+    zero_crossings = ((pos[:-1] & npos[1:]) | (npos[:-1] & pos[1:])).nonzero()[0]
     if True:
         plt.plot(data, 'b') 
         plt.plot(data_filtered, 'r')
         plt.xlim(0, 100000)
         plt.grid(True)
+        plt.plot(zero_crossings,data[zero_crossings],'o')
         plt.show()
-    pos = data_filtered > 0
-    npos = ~pos
-    return ((pos[:-1] & npos[1:]) | (npos[:-1] & pos[1:])).nonzero()[0]
+    return zero_crossings
 
+    return 
 def fast_fourier_transformation(data, SAMPLING_RATE):
     plot_FFT = 0    #Show FFT Signal Plot        
     #berechnen der Fouriertransformation        
