@@ -25,30 +25,49 @@ rms_list = []
 
 #########---------------Funktionen-------------------########
 
+def moving_average(a,n=15):
+    ret = np.cumsum(a,dtype=float)
+    ret[n:] = ret[n:] - ret[:-n]
+    return np.append(np.zeros(n/2),ret[n-1:]/n)
+
 def Lowpass_Filter(data, SAMPLING_RATE):
-    show_filtered_measurement = 0    
-    b_hp, a_hp = signal.butter(1, (2100.0/(SAMPLING_RATE/2.0)), 'lowpass')
+    show_filtered_measurement = 1    
+    roundoff_freq = 2000.0
+    b_hp, a_hp = signal.butter(1, round(roundoff_freq / SAMPLING_RATE / 2,5))
+    print('WP: '+str(round(roundoff_freq/SAMPLING_RATE/2)))
+    #b_hp, a_hp = signal.butter(1, 0.001)
+    print(str(b_hp))
     data_filtered = signal.lfilter(b_hp, a_hp, data)
     
     if (show_filtered_measurement):
         plt.plot(data, 'b') 
         plt.plot(data_filtered, 'r')
-        plt.xlim(0, 40000)
+        plt.xlim(0, 100000)
         plt.grid(True)
+        plt.show()
     return data_filtered
             
 def calculate_Frequency(SAMPLING_RATE, data):        
     t = detect_zero_crossings(data, SAMPLING_RATE)
-    freq_sample = (t[len(t)-1]-t[0])/((len(t)-1)*2.0)
+    freq_sample = (t[len(t)-1]-t[0])/(len(t)-1)*2
     measured_frequency = SAMPLING_RATE/freq_sample
             
     return measured_frequency, freq_sample
         
-def detect_zero_crossings(data, SAMPLING_RATE):
-    data_filtered = Lowpass_Filter(data, SAMPLING_RATE)    
+def detect_zero_crossings(data):
+    #data_filtered = Lowpass_Filter(data, SAMPLING_RATE)    
+    data_filtered = moving_average(data)
     pos = data_filtered > 0
     npos = ~pos
-    return ((pos[:-1] & npos[1:]) | (npos[:-1] & pos[1:])).nonzero()[0]
+    zero_crossings = ((pos[:-1] & npos[1:]) | (npos[:-1] & pos[1:])).nonzero()[0]
+    if False:
+        plt.plot(data, 'b') 
+        plt.plot(data_filtered, 'r')
+        plt.xlim(0, 100000)
+        plt.grid(True)
+        plt.plot(zero_crossings,data[zero_crossings],'o')
+        plt.show()
+    return zero_crossings
 
 def fast_fourier_transformation(data, SAMPLING_RATE):
     plot_FFT = 0    #Show FFT Signal Plot        
@@ -72,10 +91,6 @@ def calculate_rms(data):
     rms_points = np.sqrt(np.mean(np.power(data, 2)))
     rms = rms_points/V_max*Resolution
     rms_list.append(rms)
-#    if 'rms_list' not in locals():
-#        rms_list = [rms]         
-#    else:
-#        rms_list.append(rms)
     return rms_list
     
 def calculate_rms_half_period(data):
@@ -285,8 +300,11 @@ def convert_data_to_lower_fs(data, SAMPLING_RATE):
     data_flicker =data[delta]
     return data_flicker
     
-def calculate_unbalance(data):
-    return 0
+def calculate_unbalance(rms_10min_u, rms_10min_v, rms_10min_w):
+    a = -0.5+0.5j*np.sqrt(3)
+    u1 =1.0/3*(rms_10min_u+rms_10min_v+rms_10min_w)
+    u2 = 1.0/3 *(rms_10min_u+a*rms_10min_v+a**2*rms_10min_w)
+    return np.abs(u2)/np.abs(u1)*100
 
 def calculate_THD(data, SAMPLING_RATE):
     if (Class == 1):
@@ -296,10 +314,6 @@ def calculate_THD(data, SAMPLING_RATE):
     else:
         None
     THD = np.sqrt(np.sum(harmonics_amplitudes[1:])/harmonics_amplitudes[0])*100
-#    if THD_KlasseS <= 8:
-#        print("THD_S ist OK!")
-#    else:
-#        print("THD zu hoch: THD_S = " + str(THD_KlasseS))
     return THD
     
 def calculate_Plt(Pst_list):
