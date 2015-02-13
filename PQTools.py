@@ -25,7 +25,7 @@ def moving_average(a,n=15):
     return np.append(np.ones(n/2),ret[n-1:]/n)
 
 def Lowpass_Filter(data, SAMPLING_RATE):
-    show_filtered_measurement = 1    
+    show_filtered_measurement = 0    
     roundoff_freq = 2000.0
     b_hp, a_hp = signal.butter(1, round(roundoff_freq / SAMPLING_RATE / 2,5))
     print('WP: '+str(round(roundoff_freq/SAMPLING_RATE/2)))
@@ -57,6 +57,7 @@ def detect_zero_crossings(data, SAMPLING_RATE):
     if True:
         plt.plot(data, 'b') 
         plt.plot(data_filtered, 'r')
+        plt.ion()
         plt.xlim(0, 100000)
         plt.grid(True)
         plt.plot(zero_crossings,data[zero_crossings],'o')

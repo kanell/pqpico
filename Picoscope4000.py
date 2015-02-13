@@ -213,7 +213,7 @@ class Picoscope4000:
         
         
 # Setup Operations
-    def set_channel(self, channel=PS4000_CHANNEL_A, enabled=True, dc=True, vertrange=RANGE_10V, analogOffset=ANALOG_OFFSET_0V):
+    def set_channel(self, channel=PS4000_CHANNEL_A, enabled=True, dc=True, vertrange=RANGE_50V, analogOffset=ANALOG_OFFSET_0V):
         '''Default Values: channel: Channel A | channel enabled: true | ac/dc coupling mode: dc(=true) | vertical range: 2Vpp'''
         if VERBOSE:
             print('==== SetChannel ====')
