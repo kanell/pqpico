@@ -42,9 +42,6 @@ try:
                 pass
                 #print(str(snippet))
             time.sleep(0.1)
-
-
-
         
         #data_chunk = data[:min_snippet_length]
 
