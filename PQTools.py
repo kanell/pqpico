@@ -21,7 +21,7 @@ Class  = 1
 
 ########------Initialisierung von globalen Listen-------##########
 
-rms_list = []
+
 
 #########---------------Funktionen-------------------########
 
@@ -34,9 +34,7 @@ def Lowpass_Filter(data, SAMPLING_RATE):
     show_filtered_measurement = 1    
     roundoff_freq = 2000.0
     b_hp, a_hp = signal.butter(1, round(roundoff_freq / SAMPLING_RATE / 2,5))
-    print('WP: '+str(round(roundoff_freq/SAMPLING_RATE/2)))
-    #b_hp, a_hp = signal.butter(1, 0.001)
-    print(str(b_hp))
+    #print('WP: '+str(round(roundoff_freq/SAMPLING_RATE/2)))
     data_filtered = signal.lfilter(b_hp, a_hp, data)
     
     if (show_filtered_measurement):
@@ -71,8 +69,9 @@ def detect_zero_crossings(data):
 
 def fast_fourier_transformation(data, SAMPLING_RATE):
     plot_FFT = 0    #Show FFT Signal Plot        
+    zero_padding = 2**int(np.log(SAMPLING_RATE*0.2)/np.log(2)+1)    
     #berechnen der Fouriertransformation        
-    FFTdata = np.fft.fftshift(np.fft.fft(data))/len(data)     
+    FFTdata = np.fft.fftshift(np.fft.fft(data, zero_padding))/zero_padding     
     #Frequenzen der Oberschwingungen    
     FFTfrequencys = np.fft.fftfreq(len(FFTdata), 1.0/SAMPLING_RATE)
     #wegkürzen der neczgativen frequenzen und dafür verdoppeln der Amplituden
@@ -90,8 +89,7 @@ def calculate_rms(data):
     #Der Effektivwert wird ueber alle Messpunkte gebildet             
     rms_points = np.sqrt(np.mean(np.power(data, 2)))
     rms = rms_points/V_max*Resolution
-    rms_list.append(rms)
-    return rms_list
+    return rms
     
 def calculate_rms_half_period(data):
     #Der Effektivwert wird ueber alle Messpunkte gebildet             
@@ -113,22 +111,22 @@ def calculate_rms_half_period(data):
         
 def calculate_harmonics_ClassA(data, SAMPLING_RATE):
     FFTdata, FFTfrequencys = fast_fourier_transformation(data, SAMPLING_RATE)        
-    harmonics_amplitudes = np.array([])
-    area_amplitudes = 10#round(len(data)/float(SAMPLING_RATE)*measured_frequency) #an dieser Stelle sollte sich der Amplitudenausschlag der Oberschwingung befinden           
+    harmonics_amplitudes = np.zeros(41)
+    area_amplitudes = round(len(FFTdata)*2/float(SAMPLING_RATE)/0.02) #an dieser Stelle sollte sich der Amplitudenausschlag der Oberschwingung befinden           
     for i in xrange(1,41): 
         #Berechnung der Harmonischen über eine for-Schleife        
-        harmonics_amplitudes = np.append(harmonics_amplitudes, (np.sum(FFTdata[int(area_amplitudes*i-1):int(area_amplitudes*i+2)]**2))) #direkter Amplitudenwert aus FFT
+        harmonics_amplitudes[i] = np.sum(FFTdata[int(area_amplitudes*i-1):int(area_amplitudes*i+2)]**2) #direkter Amplitudenwert aus FFT
     return harmonics_amplitudes
     
 def calculate_harmonics_ClassS(data, SAMPLING_RATE):
     FFTdata, FFTfrequencys = fast_fourier_transformation(data, SAMPLING_RATE)        
-    harmonics_amplitudes = np.array([])
-    area_amplitudes = 10#len(data)/float(SAMPLING_RATE)*measured_frequency #an dieser Stelle sollte sich der Amplitudenausschlag der Oberschwingung befinden 
+    harmonics_amplitudes = np.zeros(41)
+    area_amplitudes = len(FFTdata)*2/float(SAMPLING_RATE)/0.02 #an dieser Stelle sollte sich der Amplitudenausschlag der Oberschwingung befinden 
     for i in xrange(1,41): 
         grouping_part1 = 0.5*FFTdata[int(round(area_amplitudes*i-area_amplitudes/2))]**2
         grouping_part2 = 0.5*FFTdata[int(round(area_amplitudes*i+area_amplitudes/2))]**2
         grouping_part3 = np.sum(FFTdata[int(round(area_amplitudes*i-area_amplitudes/2)+1):int(round(area_amplitudes*i+area_amplitudes/2))]**2)       
-        harmonics_amplitudes = np.append(harmonics_amplitudes, (grouping_part1+grouping_part2+grouping_part3))
+        harmonics_amplitudes[i] = grouping_part1+grouping_part2+grouping_part3
     return harmonics_amplitudes
 
 def calculate_Pst(data):    
