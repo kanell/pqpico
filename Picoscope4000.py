@@ -129,6 +129,7 @@ class Picoscope4000:
                 self.lib = ctypes.cdll.LoadLibrary(LIBNAME)
             else:
                 print('Unknown Platform')
+            self.fakeDataMode = False
         except OSError:
             print('\nNo Picoscope library found, switching to fake data mode\n')
             self.fakeDataMode = True
@@ -181,8 +182,10 @@ class Picoscope4000:
 
         # If fake Data is enabled, ignore everything:
         if self.fakeDataMode:
-            return -1
+            pass
+            return 0
     
+        # Open Picoscope:
         self.handle = ctypes.c_int16()
         picoStatus = self.lib.ps4000aOpenUnit(ctypes.byref(self.handle),None)
         if VERBOSE:
@@ -202,11 +205,15 @@ class Picoscope4000:
                 if VERBOSE:
                     print(' OK: Supply mode changed')
                     
+        # Handle Error Cases
         if self.handle.value == -1:
             print(' Failed to open oscilloscope')
         elif self.handle.value == 0:
             print(' No oscilloscope found')
+            self.fakeDataMode = True
+            print('\nNo Picoscope found, switching to fake data mode\n')
         print(self.handle)
+
         return self.handle
 
     def close_unit(self):
