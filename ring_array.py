@@ -8,13 +8,14 @@ class ring_array():
     def get_data_view(self):
         return self.ringBuffer[:self.size]
 
-     
+    def get_index(self, index):
+        return self.ringBuffer[index]
+    
     def attach_to_back(self, data_to_attach):
         try:
             self.ringBuffer[self.size:self.size + data_to_attach.size] = data_to_attach
         except AttributeError:
             print('data_to_attach has no .size attribute, should be of type numpy.ndarray')
-
         self.size += data_to_attach.size
 
     def cut_off_front(self,index):

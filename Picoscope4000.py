@@ -430,7 +430,7 @@ class Picoscope4000:
     def get_queue_data(self):
         self.get_streaming_latest_values()
         if not self.dataqueue.empty():
-            return self.dataqueue.get()
+            return np.array(self.dataqueue.get())
         else:
             return None
     
