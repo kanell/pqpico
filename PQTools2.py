@@ -4,33 +4,37 @@ Created on Wed Feb  4 18:02:43 2015
 
 @author: Malte Gerber
 """
+###########------------Module----------------##############
 
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.signal as signal
 
-##__Konstanten__##
+########----------------Konstanten---------------############
 
 V_max = 32768/50
-R1 = 993000 #Ohm
-R2 = 82400*1000000/(82400+1000000) #Ohm
+R1 = 993000 # Ohm
+R2 = 82400*1000000/(82400+1000000) # Ohm
 Resolution = (R1+R2)/R2
-f_line = 50 #Hz
-measured_frequency = 50
+f_line = 50 # Hz
+Class  = 1
 
-##__Funktionen__##
+########------Initialisierung von globalen Listen-------##########
+
+
+
+#########---------------Funktionen-------------------########
+
 def moving_average(a,n=15):
     ret = np.cumsum(a,dtype=float)
     ret[n:] = ret[n:] - ret[:-n]
-    return np.append(np.ones(n/2),ret[n-1:]/n)
+    return np.append(np.zeros(n/2),ret[n-1:]/n)
 
 def Lowpass_Filter(data, SAMPLING_RATE):
-    show_filtered_measurement = 0    
+    show_filtered_measurement = 1    
     roundoff_freq = 2000.0
     b_hp, a_hp = signal.butter(1, round(roundoff_freq / SAMPLING_RATE / 2,5))
-    print('WP: '+str(round(roundoff_freq/SAMPLING_RATE/2)))
-    #b_hp, a_hp = signal.butter(1, 0.001)
-    print(str(b_hp))
+    #print('WP: '+str(round(roundoff_freq/SAMPLING_RATE/2)))
     data_filtered = signal.lfilter(b_hp, a_hp, data)
     
     if (show_filtered_measurement):
@@ -48,34 +52,44 @@ def calculate_Frequency(SAMPLING_RATE, data):
             
     return measured_frequency, freq_sample
         
-def detect_zero_crossings(data, SAMPLING_RATE):
+def detect_zero_crossings(data):
     #data_filtered = Lowpass_Filter(data, SAMPLING_RATE)    
     data_filtered = moving_average(data)
     pos = data_filtered > 0
     npos = ~pos
+    zero_crossings_raw = ((pos[:-1] & npos[1:]) | (npos[:-1] & pos[1:]))
     zero_crossings = ((pos[:-1] & npos[1:]) | (npos[:-1] & pos[1:])).nonzero()[0]
+
+    pos = data_filtered >= 0
+    npos = ~pos
+    zero_crossings_raw2 = ((pos[:-1] & npos[1:]) | (npos[:-1] & pos[1:]))
+    zero_crossings2 = ((pos[:-1] & npos[1:]) | (npos[:-1] & pos[1:])).nonzero()[0]
+
+    zero_crossings_combined = (zero_crossings_raw | zero_crossings_raw2).nonzero()[0]
+
+    print('Combined Zero Crossings: '+str((zero_crossings_raw | zero_crossings_raw2).nonzero()[0]))
+
     if True:
         plt.plot(data, 'b') 
         plt.plot(data_filtered, 'r')
-        #plt.ion()
-        plt.xlim(0, 100000)
+        plt.xlim(0, zero_crossings_combined[20])
         plt.grid(True)
-        plt.plot(zero_crossings,data[zero_crossings],'o')
+        plt.plot(zero_crossings_combined,data[zero_crossings_combined],'o')
         plt.show()
-    return zero_crossings
+    return zero_crossings_combined
 
-    return 
 def fast_fourier_transformation(data, SAMPLING_RATE):
     plot_FFT = 0    #Show FFT Signal Plot        
+    zero_padding = 2**int(np.log(SAMPLING_RATE*0.2)/np.log(2)+1)    
     #berechnen der Fouriertransformation        
-    FFTdata = np.fft.fftshift(np.fft.fft(data))/len(data)     
+    FFTdata = np.fft.fftshift(np.fft.fft(data, zero_padding))/zero_padding     
     #Frequenzen der Oberschwingungen    
     FFTfrequencys = np.fft.fftfreq(len(FFTdata), 1.0/SAMPLING_RATE)
-    #wegkürzen der negativen frequenzen und dafür verdoppeln der Amplituden
+    #wegkürzen der neczgativen frequenzen und dafür verdoppeln der Amplituden
     FFTdata = np.abs(FFTdata[(len(FFTdata)/2):])*2
     
     if (plot_FFT):
-        plt.plot(FFTfrequencys[:len(data)/2], FFTdata) #Plot der Messwerte der FFT über die gegebene x-Achse fMax
+        plt.plot(FFTfrequencys[:len(FFTdata)], FFTdata)
         plt.xlabel("f in Hz") # y-Achse beschriefen
         plt.ylabel("FFT") # x-Achse beschriften
         plt.xlim([0,1500]) # länge der angezeigten x-Achse
@@ -86,72 +100,56 @@ def calculate_rms(data):
     #Der Effektivwert wird ueber alle Messpunkte gebildet             
     rms_points = np.sqrt(np.mean(np.power(data, 2)))
     rms = rms_points/V_max*Resolution
-    if (rms <= (0.9*230) and rms >= (0.1*230)):
+    return rms
+    
+def calculate_rms_half_period(data):
+    #Der Effektivwert wird ueber alle Messpunkte gebildet             
+    rms_points = np.sqrt(np.mean(np.power(data, 2)))
+    rms_half_period = rms_points/V_max*Resolution
+    if (rms_half_period <= (0.9*230) and rms_half_period >= (0.1*230)):
         print ("Es ist eine Unterspannung aufgetreten!")
-        #t.append(rms)
-    elif rms < 0.1*230:
+        ###----hier wird statt der ausgabe ein flag gesetzt-----######
+    elif rms_half_period < 0.1*230:
         print("Es liegt eine Spannungunterbrechung vor!")
-        #t.append(rms)
-    elif rms > 1.1*230:
+        ###----hier wird statt der ausgabe ein flag gesetzt-----######
+    elif rms_half_period > 1.1*230:
         print ("Es ist eine Überspannung aufgetreten!")
-        #t.append(rms)
+        ###----hier wird statt der ausgabe ein flag gesetzt-----######
     else:
         print("Alles OK!")
-        #t.append(rms)
-    return rms
+        ###----hier wird statt der ausgabe ein flag gesetzt-----######
+    return rms_half_period
         
-def calculate_THD_KlasseA(data, SAMPLING_RATE):
+def calculate_harmonics_ClassA(data, SAMPLING_RATE):
     FFTdata, FFTfrequencys = fast_fourier_transformation(data, SAMPLING_RATE)        
-    THD = 0 #Startwert der THD
-    Bereich_Amplituden = round(len(data)/float(SAMPLING_RATE)*measured_frequency) #an dieser Stelle sollte sich der Amplitudenausschlag der Oberschwingung befinden           
-    for i in range(1,41): 
-        #Berechnung des THD-Wertes über eine for-Schleife        
-        THD_Amplituden = np.sum(FFTdata[int(Bereich_Amplituden*i-1):int(Bereich_Amplituden*i+2)]**2) #direkter Amplitudenwert aus FFT           
-        THD = THD + THD_Amplituden
-        if (i==1):
-            erste_Oberschwingung = THD
-            THD = 0
-    THD_KlasseA = np.sqrt(THD/(erste_Oberschwingung))*100 #darf nicht größer als 8% betragen
-    if THD_KlasseA <= 8:
-        print("THD_A ist OK!")
-    else:
-        print("THD zu hoch: THD_A = " + str(THD_KlasseA))
-    return THD_KlasseA
+    harmonics_amplitudes = np.zeros(41)
+    area_amplitudes = round(len(FFTdata)*2/float(SAMPLING_RATE)/0.02) #an dieser Stelle sollte sich der Amplitudenausschlag der Oberschwingung befinden           
+    for i in xrange(1,41): 
+        #Berechnung der Harmonischen über eine for-Schleife        
+        harmonics_amplitudes[i] = np.sum(FFTdata[int(area_amplitudes*i-1):int(area_amplitudes*i+2)]**2) #direkter Amplitudenwert aus FFT
+    return harmonics_amplitudes
     
-def calculate_THD_KlasseS(data, SAMPLING_RATE):
+def calculate_harmonics_ClassS(data, SAMPLING_RATE):
     FFTdata, FFTfrequencys = fast_fourier_transformation(data, SAMPLING_RATE)        
-    Gruppierung = 0
-    Bereich_Amplituden = len(data)/float(SAMPLING_RATE)*measured_frequency #an dieser Stelle sollte sich der Amplitudenausschlag der Oberschwingung befinden 
-    for i in range(1,41): 
-        Gruppierung_teil1 = 0.5*FFTdata[int(round(Bereich_Amplituden*i-Bereich_Amplituden/2))]**2
-        Gruppierung_teil2 = 0.5*FFTdata[int(round(Bereich_Amplituden*i+Bereich_Amplituden/2))]**2
-        Gruppierung_teil3 = np.sum(FFTdata[int(round(Bereich_Amplituden*i-Bereich_Amplituden/2)+1):int(round(Bereich_Amplituden*i+Bereich_Amplituden/2))]**2)       
-        Gruppierung = Gruppierung_teil1+Gruppierung_teil2+Gruppierung_teil3+Gruppierung
-        if (i==1):
-            erste_Oberschwingung = Gruppierung
-            Gruppierung = 0
-    THD_KlasseS = np.sqrt(Gruppierung/erste_Oberschwingung)*100
-    if THD_KlasseS <= 8:
-        print("THD_S ist OK!")
-    else:
-        print("THD zu hoch: THD_S = " + str(THD_KlasseS))
-    return THD_KlasseS
+    harmonics_amplitudes = np.zeros(41)
+    area_amplitudes = len(FFTdata)*2/float(SAMPLING_RATE)/0.02 #an dieser Stelle sollte sich der Amplitudenausschlag der Oberschwingung befinden 
+    for i in xrange(1,41): 
+        grouping_part1 = 0.5*FFTdata[int(round(area_amplitudes*i-area_amplitudes/2))]**2
+        grouping_part2 = 0.5*FFTdata[int(round(area_amplitudes*i+area_amplitudes/2))]**2
+        grouping_part3 = np.sum(FFTdata[int(round(area_amplitudes*i-area_amplitudes/2)+1):int(round(area_amplitudes*i+area_amplitudes/2))]**2)       
+        harmonics_amplitudes[i] = grouping_part1+grouping_part2+grouping_part3
+    return harmonics_amplitudes
 
-def calculate_Pst(u, fs):    
+def calculate_Pst(data):    
     show_time_signals = 0           #Aktivierung des Plots der Zeitsignale im Flickermeter
     show_filter_responses = 0       #Aktivierung des Plots der Amplitudengänge der Filter.
                                     #(zu Prüfzecken der internen Filter)
     
-    step = int(fs/4000)
-    delta = np.arange(0,len(u),step)
-    u =u[delta]
     fs = 4000    
-    #u = ana.example_sin_wave(2400000, 4000)
-    #u = np.load('heizung_test.npy') #ACHTUNG!!! fs = 2000 
        
     ## Block 1: Modulierung des Spannungssignals
     
-    u = u - np.mean(u)                      # entfernt DC-Anteil
+    u = data - np.mean(data)                      # entfernt DC-Anteil
     u_rms = np.sqrt(np.mean(np.power(u,2))) # Normierung des Eingangssignals
     u = u / (u_rms * np.sqrt(2))
     
@@ -167,10 +165,10 @@ def calculate_Pst(u, fs):
     
     LOWPASS_ORDER = 6 #Ordnungszahl des Tiefpassfilters
     if (f_line == 50):
-      LOWPASS_CUTOFF = 35 #Hz Grenzfrequenz
+      LOWPASS_CUTOFF = 35.0 #Hz Grenzfrequenz
     
     if (f_line == 60):
-      LOWPASS_CUTOFF = 42 #Hz Grenzfrequenz
+      LOWPASS_CUTOFF = 42.0 #Hz Grenzfrequenz
     
     # subtract DC component to limit filter transients at start of simulation
     u_0_ac = u_0 - np.mean(u_0)
@@ -301,3 +299,42 @@ def calculate_Pst(u, fs):
         
     return P_st 
         
+def count_up_values(values_list):
+    new_value = np.sqrt(np.sum(np.power(values_list,2), axis=0)/len(values_list))
+    return new_value
+    
+def convert_data_to_lower_fs(data, SAMPLING_RATE):
+    step = int(SAMPLING_RATE/4000)
+    delta = np.arange(0,len(data),step)
+    data_flicker =data[delta]
+    return data_flicker
+    
+def calculate_unbalance(rms_10min_u, rms_10min_v, rms_10min_w):
+    a = -0.5+0.5j*np.sqrt(3)
+    u1 =1.0/3*(rms_10min_u+rms_10min_v+rms_10min_w)
+    u2 = 1.0/3 *(rms_10min_u+a*rms_10min_v+a**2*rms_10min_w)
+    return np.abs(u2)/np.abs(u1)*100
+
+def calculate_THD(data, SAMPLING_RATE):
+    if (Class == 1):
+        harmonics_amplitudes = calculate_harmonics_ClassA(data, SAMPLING_RATE)
+    elif (Class == 0):
+        harmonics_amplitudes = calculate_harmonics_ClassS(data, SAMPLING_RATE)
+    else:
+        None
+    THD = np.sqrt(np.sum(harmonics_amplitudes[1:])/harmonics_amplitudes[0])*100
+    return THD
+    
+def calculate_Plt(Pst_list):
+    P_lt = np.power(np.power(Pst_list,3)/12,1/3)
+    return P_lt
+
+def test_harmonics(data, SAMPLING_RATE):
+    if (Class == 1):
+        harmonics_amplitudes = calculate_harmonics_ClassA(data, SAMPLING_RATE)
+    elif (Class == 0):
+        harmonics_amplitudes = calculate_harmonics_ClassS(data, SAMPLING_RATE)
+    else:
+        None
+    
+    return 0
