@@ -6,6 +6,8 @@ import sys
 import matplotlib.pyplot as plt
 from ring_array import ring_array
 
+PLOTTING = 0
+
 pico = Picoscope4000.Picoscope4000()
 pico.run_streaming()
 
@@ -52,50 +54,42 @@ try:
                 else:
                     pass
                     #print(str(snippet))
-                time.sleep(0.1)
     
-        #data_chunk = data[:min_snippet_length]
-
-        # remove DC component mathmatically, works better than switchung Picoscope to AC coupling
-
-        #data_chunk -= np.mean(data_chunk)
-
+        
+        # Find 10 periods
+        # ===============
         zero_indices = pq.detect_zero_crossings(data.get_data_view())
+        data_10periods = data.cut_off_front(zero_indices[20]-1)
 
-        #print('data_chunk: '+str(data_chunk))
+ 
+        # Calculate and store frequency for ten periods
+        # =============================================
+        frequency_10periods = pq.calculate_frequency_10periods(zero_indices, streaming_sample_interval)
+        print(str(frequency_10periods))
         print('zero_indices: '+str(zero_indices))
         print(np.diff(zero_indices))   
-        #if False:
-            #plt.plot(np.diff(zero_indices), 'b') 
-            #plt.grid(True)
-            #plt.show()
-        #np.save('/home/kipfer/pqpico/Data/data_chunk',data_chunk) 
-        #print(len(data_chunk))
-
-        data_10periods = data.cut_off_front(zero_indices[20]-1)
-        #data_10seconds = np.append(data_10seconds, data_10periods) #Preallocation?
-
+        if PLOTTING:
+            plt.plot(np.diff(zero_indices), 'b') 
+            plt.grid(True)
+            plt.show()
         print('Length of data_10periods : '+str(data_10periods.size))
-
-        #data = np.array([1,2,3,4,5])
-        #data = data[zero_indices[20]:zero_indices[20]+10]
-        #shift_zeros = zero_indices - zero_indices[0]
-
-        #for i in xrange(20):    
-            #rms_half_period = pq.calculate_rms_half_period(data_10periods[shift_zeros[i]:shift_zeros[i+1]])
-
         print(np.mean(data_10periods))
-        data_10periods -= np.mean(data_10periods)
+        #data_10periods -= np.mean(data_10periods)
     
+     
+        # Calculate and store RMS values of half periods 
+        # ==============================================
         for i in xrange(20):    
             rms_half_period[i] = pq.calculate_rms_half_period(data_10periods[zero_indices[i]:zero_indices[i+1]])
-
         print('RMSs: '+str(rms_half_period))
+        if PLOTTING:
+            plt.plot(rms_half_period)
+            plt.grid(True)
+            plt.show()
 
-        plt.plot(rms_half_period)
-        plt.grid(True)
-        plt.show()
 
+        # Calculate and store RMS values of 10 seconds
+        # ============================================
         rms_10_periods = pq.calculate_rms(data_10periods)
         print('RMS: '+str(rms_10_periods))
 
@@ -113,7 +107,7 @@ try:
             #break
             
 
-        break
+        #break
 
 finally:
     pico.close_unit()

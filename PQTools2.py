@@ -31,13 +31,12 @@ def moving_average(a,n=15):
     return np.append(np.zeros(n/2),ret[n-1:]/n)
 
 def Lowpass_Filter(data, SAMPLING_RATE):
-    show_filtered_measurement = 1    
     roundoff_freq = 2000.0
     b_hp, a_hp = signal.butter(1, round(roundoff_freq / SAMPLING_RATE / 2,5))
     #print('WP: '+str(round(roundoff_freq/SAMPLING_RATE/2)))
     data_filtered = signal.lfilter(b_hp, a_hp, data)
     
-    if (show_filtered_measurement):
+    if False:
         plt.plot(data, 'b') 
         plt.plot(data_filtered, 'r')
         plt.xlim(0, 100000)
@@ -54,22 +53,23 @@ def calculate_Frequency(SAMPLING_RATE, data):
         
 def detect_zero_crossings(data):
     #data_filtered = Lowpass_Filter(data, SAMPLING_RATE)    
+    #data -= np.mean(data)
     data_filtered = moving_average(data)
     pos = data_filtered > 0
     npos = ~pos
     zero_crossings_raw = ((pos[:-1] & npos[1:]) | (npos[:-1] & pos[1:]))
-    zero_crossings = ((pos[:-1] & npos[1:]) | (npos[:-1] & pos[1:])).nonzero()[0]
+    #zero_crossings = ((pos[:-1] & npos[1:]) | (npos[:-1] & pos[1:])).nonzero()[0]
 
     pos = data_filtered >= 0
     npos = ~pos
     zero_crossings_raw2 = ((pos[:-1] & npos[1:]) | (npos[:-1] & pos[1:]))
-    zero_crossings2 = ((pos[:-1] & npos[1:]) | (npos[:-1] & pos[1:])).nonzero()[0]
+    #zero_crossings2 = ((pos[:-1] & npos[1:]) | (npos[:-1] & pos[1:])).nonzero()[0]
 
     zero_crossings_combined = (zero_crossings_raw | zero_crossings_raw2).nonzero()[0]
 
-    print('Combined Zero Crossings: '+str((zero_crossings_raw | zero_crossings_raw2).nonzero()[0]))
+    print('Combined Zero Crossings: '+str(zero_crossings_combined))
 
-    if True:
+    if False:
         plt.plot(data, 'b') 
         plt.plot(data_filtered, 'r')
         plt.xlim(0, zero_crossings_combined[20])
@@ -77,6 +77,16 @@ def detect_zero_crossings(data):
         plt.plot(zero_crossings_combined,data[zero_crossings_combined],'o')
         plt.show()
     return zero_crossings_combined
+
+def calculate_frequency_10periods(zero_indices, SAMPLING_RATE):
+    print('Samples in 10 periods: '+str(zero_indices[20]-zero_indices[0]))
+    print('Sampling Rate: '+str(SAMPLING_RATE))
+    time_10periods = float((zero_indices[20] - zero_indices[0])) / SAMPLING_RATE
+    print('time_10periods: '+str(time_10periods))
+    frequency_10periods = 10.0 / time_10periods
+    print('frequency_10periods: '+str(frequency_10periods))
+    return frequency_10periods
+
 
 def fast_fourier_transformation(data, SAMPLING_RATE):
     plot_FFT = 0    #Show FFT Signal Plot        
