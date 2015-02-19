@@ -5,6 +5,7 @@ import time
 import sys
 import matplotlib.pyplot as plt
 from ring_array import ring_array
+import logging
 
 PLOTTING = 0
 
@@ -26,23 +27,41 @@ is_first_iteration = 1
 #tstart = time.time()
 #time.sleep(0.5) # Activate when first data is None and first iterations runs with None data, should be fixed
 
+# Initialize Logging
+# ==================
+
+queueLogger = logging.getLogger('queueLogger')
+queueLogger.setLevel(logging.DEBUG)
+
+fh = logging.FileHandler('Logs/queueLog.log')
+fh.setLevel(logging.DEBUG)
+
+sh = logging.StreamHandler()
+sh.setLevel(logging.DEBUG)
+
+formatter = logging.Formatter('%(asctime)s \t %(levelname)s \t %(message)s')
+fh.setFormatter(formatter)
+sh.setFormatter(formatter)
+
+queueLogger.addHandler(fh)
+queueLogger.addHandler(sh)
+
 try:
     while True:
         while data.size < min_snippet_length:
-
+        
             if is_first_iteration:
-                # detect the very first zero crossing:
+                # Detect the very first zero crossing:
                 snippet = pico.get_queue_data()
                 if snippet is not None:
-                    print('Snippet is '+str(snippet))
+                    queueLogger.debug('Length of current data: '+str(data.size))
+                    queueLogger.debug('Length of snippet:      '+str(snippet.size))
                     data.attach_to_back(snippet)
-                    print('data: '+str(data.get_data_view()))
-                    print('data[0]: '+str(data.get_index(0)))
+
+                    # Cut off everything before the first zero crossing:
                     first_zero_crossing = np.nonzero(np.sign(data.get_data_view()) == -1 * np.sign(data.get_index(0)))[0][0]-1
-                    print('first_zero_crossing: '+str(first_zero_crossing))
-                    print('Value before start: '+str(data.get_index(first_zero_crossing-1))+', First value: '+str(data.get_index(first_zero_crossing)))
+                    queueLogger.debug('Cut off '+str(first_zero_crossing)+' values before first zero crossing') 
                     data.cut_off_front(first_zero_crossing)
-                    print('data: '+str(data.get_data_view()))
                     is_first_iteration = 0
 
             else:
@@ -50,7 +69,9 @@ try:
                 snippet = pico.get_queue_data()
                 if snippet is not None:
                     data.attach_to_back(snippet)
-                    print('Length of recorded snippet: '+str(len(snippet)))
+
+                    queueLogger.debug('Length of current data: '+str(data.size))
+                    queueLogger.debug('Length of snippet:      '+str(snippet.size))
                 else:
                     pass
                     #print(str(snippet))
