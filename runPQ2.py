@@ -17,9 +17,10 @@ streaming_sample_interval = parameters['streaming_sample_interval']
 
 min_snippet_length = streaming_sample_interval/2
 
-data = ring_array()
-data_10periods = np.array([np.zeros(10000000)])
-data_10seconds = np.array([])
+data = ring_array(size=10000000)
+#data_10periods = np.array([np.zeros(10000000)])
+
+data_10seconds = ring_array(size=20000000) 
 
 rms_half_period = np.array(np.zeros(20))
 
@@ -37,7 +38,7 @@ fhq = logging.FileHandler('Logs/queueLog.log')
 fhq.setLevel(logging.DEBUG)
 
 shq = logging.StreamHandler()
-shq.setLevel(logging.DEBUG)
+shq.setLevel(logging.INFO)
 
 formatterq = logging.Formatter('%(asctime)s \t %(levelname)s \t %(message)s')
 fhq.setFormatter(formatterq)
@@ -46,14 +47,14 @@ shq.setFormatter(formatterq)
 queueLogger.addHandler(fhq)
 queueLogger.addHandler(shq)
 
-dataLogger = logging.getLogger('dataogger')
+dataLogger = logging.getLogger('dataLogger')
 dataLogger.setLevel(logging.DEBUG)
 
 fhd = logging.FileHandler('Logs/dataLog.log')
 fhd.setLevel(logging.DEBUG)
 
 shd = logging.StreamHandler()
-shd.setLevel(logging.DEBUG)
+shd.setLevel(logging.INFO)
 
 formatterd = logging.Formatter('%(asctime)s \t %(levelname)s \t %(message)s')
 fhd.setFormatter(formatterd)
@@ -65,28 +66,30 @@ dataLogger.addHandler(shd)
 try:
     while True:
         while data.size < min_snippet_length:
-        
+
+            snippet = pico.get_queue_data()
+
             if is_first_iteration:
                 # Detect the very first zero crossing:
-                snippet = pico.get_queue_data()
                 if snippet is not None:
                     data.attach_to_back(snippet)
+                    data_10seconds.attach_to_back(snippet)
 
                     queueLogger.debug('Length of snippet:      +'+str(snippet.size))
                     queueLogger.debug('Length of current data: '+str(data.size))
-
 
                     # Cut off everything before the first zero crossing:
                     first_zero_crossing = np.nonzero(np.sign(data.get_data_view()) == -1 * np.sign(data.get_index(0)))[0][0]-1
                     queueLogger.debug('Cut off '+str(first_zero_crossing)+' values before first zero crossing') 
                     data.cut_off_front(first_zero_crossing)
+                    data_10seconds.cut_off_front(first_zero_crossing)
                     is_first_iteration = 0
 
             else:
                 # Get data snippet from Queue
-                snippet = pico.get_queue_data()
                 if snippet is not None:
                     data.attach_to_back(snippet)
+                    data_10seconds.attach_to_back(snippet)
 
                     queueLogger.debug('Length of snippet:      +'+str(snippet.size))
                     queueLogger.debug('Length of current data: '+str(data.size))
@@ -123,10 +126,24 @@ try:
             plt.show()
 
 
-        # Calculate and store RMS values of 10 seconds
+        # Calculate and store RMS values of 10 periods
         # ============================================
         rms_10periods = pq.calculate_rms(data_10periods)
         dataLogger.debug('RMS voltage of 10 periods: '+str(rms_10periods))
+
+
+        # Calculate frequency of 10 seconds
+        # =================================
+        if (data_10seconds.size > 10*streaming_sample_interval):
+            frequency_data = data_10seconds.cut_off_front(10*streaming_sample_interval)
+            plt.plot(frequency_data)
+            plt.grid()
+            plt.show()
+            frequency = pq.calculate_Frequency(streaming_sample_interval,frequency_data)
+            dataLogger.info('Frequency10s: '+str(frequency))
+            break
+
+
 
         #harmonics = pq.calculate_harmonics_ClassA(data_10periods, parameters['streaming_sample_interval'])
 
@@ -146,6 +163,11 @@ try:
 
 finally:
     pico.close_unit()
+
+    # Error Handling: Save and log all variables
+    # ==========================================
+
+
 
 
 #def print memoryusage(variable:
