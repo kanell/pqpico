@@ -27,7 +27,7 @@ datadirectory_pokini = '/home/kipfer/pqpico/Data'
 
 
 # if 1, prints diagnostics to standard output
-VERBOSE = 1
+VERBOSE = 0
 # If 1, generates profile.txtpicotec
 PROFILING = 0 # Attention, may redirect standard print output, restart python kernel if output disappears
 

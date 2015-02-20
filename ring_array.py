@@ -13,7 +13,6 @@ class ring_array():
     
     def attach_to_back(self, data_to_attach):
         try:
-            print('self.size: '+str(self.size)+', data_to_attach.size: '+str(data_to_attach.size))
             self.ringBuffer[self.size:self.size + data_to_attach.size] = data_to_attach
         except AttributeError:
             print('data_to_attach has no .size attribute, should be of type numpy.ndarray')

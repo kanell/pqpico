@@ -58,16 +58,12 @@ def detect_zero_crossings(data):
     pos = data_filtered > 0
     npos = ~pos
     zero_crossings_raw = ((pos[:-1] & npos[1:]) | (npos[:-1] & pos[1:]))
-    #zero_crossings = ((pos[:-1] & npos[1:]) | (npos[:-1] & pos[1:])).nonzero()[0]
 
     pos = data_filtered >= 0
     npos = ~pos
     zero_crossings_raw2 = ((pos[:-1] & npos[1:]) | (npos[:-1] & pos[1:]))
-    #zero_crossings2 = ((pos[:-1] & npos[1:]) | (npos[:-1] & pos[1:])).nonzero()[0]
 
     zero_crossings_combined = (zero_crossings_raw | zero_crossings_raw2).nonzero()[0]
-
-    print('Combined Zero Crossings: '+str(zero_crossings_combined))
 
     if False:
         plt.plot(data, 'b') 
@@ -79,12 +75,12 @@ def detect_zero_crossings(data):
     return zero_crossings_combined
 
 def calculate_frequency_10periods(zero_indices, SAMPLING_RATE):
-    print('Samples in 10 periods: '+str(zero_indices[20]-zero_indices[0]))
-    print('Sampling Rate: '+str(SAMPLING_RATE))
+    #print('Samples in 10 periods: '+str(zero_indices[20]-zero_indices[0]))
+    #print('Sampling Rate: '+str(SAMPLING_RATE))
     time_10periods = float((zero_indices[20] - zero_indices[0])) / SAMPLING_RATE
-    print('time_10periods: '+str(time_10periods))
+    #print('time_10periods: '+str(time_10periods))
     frequency_10periods = 10.0 / time_10periods
-    print('frequency_10periods: '+str(frequency_10periods))
+    #print('frequency_10periods: '+str(frequency_10periods))
     return frequency_10periods
 
 
@@ -126,7 +122,8 @@ def calculate_rms_half_period(data):
         print ("Es ist eine Überspannung aufgetreten!")
         ###----hier wird statt der ausgabe ein flag gesetzt-----######
     else:
-        print("Alles OK!")
+        pass
+        #print("Alles OK!")
         ###----hier wird statt der ausgabe ein flag gesetzt-----######
     return rms_half_period
         

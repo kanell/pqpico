@@ -33,18 +33,34 @@ is_first_iteration = 1
 queueLogger = logging.getLogger('queueLogger')
 queueLogger.setLevel(logging.DEBUG)
 
-fh = logging.FileHandler('Logs/queueLog.log')
-fh.setLevel(logging.DEBUG)
+fhq = logging.FileHandler('Logs/queueLog.log')
+fhq.setLevel(logging.DEBUG)
 
-sh = logging.StreamHandler()
-sh.setLevel(logging.DEBUG)
+shq = logging.StreamHandler()
+shq.setLevel(logging.DEBUG)
 
-formatter = logging.Formatter('%(asctime)s \t %(levelname)s \t %(message)s')
-fh.setFormatter(formatter)
-sh.setFormatter(formatter)
+formatterq = logging.Formatter('%(asctime)s \t %(levelname)s \t %(message)s')
+fhq.setFormatter(formatterq)
+shq.setFormatter(formatterq)
 
-queueLogger.addHandler(fh)
-queueLogger.addHandler(sh)
+queueLogger.addHandler(fhq)
+queueLogger.addHandler(shq)
+
+dataLogger = logging.getLogger('dataogger')
+dataLogger.setLevel(logging.DEBUG)
+
+fhd = logging.FileHandler('Logs/dataLog.log')
+fhd.setLevel(logging.DEBUG)
+
+shd = logging.StreamHandler()
+shd.setLevel(logging.DEBUG)
+
+formatterd = logging.Formatter('%(asctime)s \t %(levelname)s \t %(message)s')
+fhd.setFormatter(formatterd)
+shd.setFormatter(formatterd)
+
+dataLogger.addHandler(fhd)
+dataLogger.addHandler(shd)
 
 try:
     while True:
@@ -54,9 +70,11 @@ try:
                 # Detect the very first zero crossing:
                 snippet = pico.get_queue_data()
                 if snippet is not None:
-                    queueLogger.debug('Length of current data: '+str(data.size))
-                    queueLogger.debug('Length of snippet:      '+str(snippet.size))
                     data.attach_to_back(snippet)
+
+                    queueLogger.debug('Length of snippet:      +'+str(snippet.size))
+                    queueLogger.debug('Length of current data: '+str(data.size))
+
 
                     # Cut off everything before the first zero crossing:
                     first_zero_crossing = np.nonzero(np.sign(data.get_data_view()) == -1 * np.sign(data.get_index(0)))[0][0]-1
@@ -70,39 +88,35 @@ try:
                 if snippet is not None:
                     data.attach_to_back(snippet)
 
+                    queueLogger.debug('Length of snippet:      +'+str(snippet.size))
                     queueLogger.debug('Length of current data: '+str(data.size))
-                    queueLogger.debug('Length of snippet:      '+str(snippet.size))
                 else:
                     pass
-                    #print(str(snippet))
     
         
         # Find 10 periods
         # ===============
         zero_indices = pq.detect_zero_crossings(data.get_data_view())
+        dataLogger.debug('Cutting off :'+str(zero_indices[20]-1))
+        queueLogger.debug('Cutting off:            -'+str(zero_indices[20]-1))
         data_10periods = data.cut_off_front(zero_indices[20]-1)
 
  
         # Calculate and store frequency for ten periods
         # =============================================
         frequency_10periods = pq.calculate_frequency_10periods(zero_indices, streaming_sample_interval)
-        print(str(frequency_10periods))
-        print('zero_indices: '+str(zero_indices))
-        print(np.diff(zero_indices))   
+        dataLogger.debug('Frequency of 10 periods: '+str(frequency_10periods))
         if PLOTTING:
             plt.plot(np.diff(zero_indices), 'b') 
             plt.grid(True)
             plt.show()
-        print('Length of data_10periods : '+str(data_10periods.size))
-        print(np.mean(data_10periods))
-        #data_10periods -= np.mean(data_10periods)
+        dataLogger.debug('Mean value of 10 periods: '+str(np.mean(data_10periods)))
     
      
         # Calculate and store RMS values of half periods 
         # ==============================================
         for i in xrange(20):    
             rms_half_period[i] = pq.calculate_rms_half_period(data_10periods[zero_indices[i]:zero_indices[i+1]])
-        print('RMSs: '+str(rms_half_period))
         if PLOTTING:
             plt.plot(rms_half_period)
             plt.grid(True)
@@ -111,8 +125,8 @@ try:
 
         # Calculate and store RMS values of 10 seconds
         # ============================================
-        rms_10_periods = pq.calculate_rms(data_10periods)
-        print('RMS: '+str(rms_10_periods))
+        rms_10periods = pq.calculate_rms(data_10periods)
+        dataLogger.debug('RMS voltage of 10 periods: '+str(rms_10periods))
 
         #harmonics = pq.calculate_harmonics_ClassA(data_10periods, parameters['streaming_sample_interval'])
 
