@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<html>
+<head>
+<script src="https://code.jquery.com/jquery-1.11.2.min.js"></script>
+</head>
+<body>
+
+<h1> HEADING </h1>
+<script>
+    jQuery(document).ready(function($) {
+        $("h1").click(function(event) {
+            console.log("the Heading has been clicked");
+        });
+        $.get("http://localhost:9999", function(data) {
+            console.log(data);
+        });
+    });
+</script>
+
+</body>
+</html>
+
