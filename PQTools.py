@@ -54,7 +54,7 @@ def detect_zero_crossings(data, SAMPLING_RATE):
     pos = data_filtered > 0
     npos = ~pos
     zero_crossings = ((pos[:-1] & npos[1:]) | (npos[:-1] & pos[1:])).nonzero()[0]
-    if True:
+    if False:
         plt.plot(data, 'b') 
         plt.plot(data_filtered, 'r')
         #plt.ion()

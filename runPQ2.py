@@ -1,5 +1,5 @@
 import Picoscope4000
-import PQTools2 as pq
+import PQTools3 as pq
 import numpy as np
 import time
 import sys
@@ -100,6 +100,8 @@ try:
         # Find 10 periods
         # ===============
         zero_indices = pq.detect_zero_crossings(data.get_data_view())
+        if zero_indices.size < 15 or zero_indices.size > 100:
+            dataLogger.error('Number of zero crossings in '+str(data.get_data_view().size)+': '+str(zero_indices.size))
         dataLogger.debug('Cutting off :'+str(zero_indices[20]-1))
         queueLogger.debug('Cutting off:            -'+str(zero_indices[20]-1))
         data_10periods = data.cut_off_front(zero_indices[20]-1)
@@ -111,6 +113,7 @@ try:
         dataLogger.debug('Frequency of 10 periods: '+str(frequency_10periods))
         if PLOTTING:
             plt.plot(np.diff(zero_indices), 'b') 
+            plt.title('Difference between zero crossings')
             plt.grid(True)
             plt.show()
         dataLogger.debug('Mean value of 10 periods: '+str(np.mean(data_10periods)))
@@ -122,6 +125,7 @@ try:
             rms_half_period[i] = pq.calculate_rms_half_period(data_10periods[zero_indices[i]:zero_indices[i+1]])
         if PLOTTING:
             plt.plot(rms_half_period)
+            plt.title(' Voltage RMS of Half Periods')
             plt.grid(True)
             plt.show()
 
@@ -136,16 +140,21 @@ try:
         # =================================
         if (data_10seconds.size > 10*streaming_sample_interval):
             frequency_data = data_10seconds.cut_off_front(10*streaming_sample_interval)
-            plt.plot(frequency_data)
-            plt.grid()
-            plt.show()
+            #pq.compare_filter_for_zero_crossings(frequency_data, streaming_sample_interval)
+            if PLOTTING:
+                plt.plot(frequency_data)
+                plt.grid()
+                plt.show()
             frequency = pq.calculate_Frequency(streaming_sample_interval,frequency_data)
             dataLogger.info('Frequency10s: '+str(frequency))
-            break
+            #break
 
 
 
-        #harmonics = pq.calculate_harmonics_ClassA(data_10periods, parameters['streaming_sample_interval'])
+        harmonics = pq.calculate_harmonics_voltage(data_10periods,streaming_sample_interval)
+        #print(str(harmonics))
+        thd = pq.calculate_THD(data_10periods, streaming_sample_interval)
+        print(str(thd))
 
         #if data_10seconds.size >= streaming_sample_interval*1:
             #freq_data = data_10seconds[:streaming_sample_interval*1]
