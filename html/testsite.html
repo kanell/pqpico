@@ -3,6 +3,7 @@
 <html>
 <head>
 <script src="https://code.jquery.com/jquery-1.11.2.min.js"></script>
+<script>"jquery-csv.js"</script>
 </head>
 <body>
 
@@ -12,8 +13,11 @@
         $("h1").click(function(event) {
             console.log("the Heading has been clicked");
         });
-        $.get("http://localhost:9999", function(data) {
-            console.log(data);
+        //$.get("http://localhost:9999", function(data) {
+        //    console.log(data);
+        //});
+        $.get("data.csv", function(csv) {
+            console.log(csv);
         });
     });
 </script>
