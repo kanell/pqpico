@@ -105,8 +105,8 @@ try:
         dataLogger.debug('Cutting off :'+str(zero_indices[20]-1))
         queueLogger.debug('Cutting off:            -'+str(zero_indices[20]-1))
         data_10periods = data.cut_off_front(zero_indices[20]-1)
-
  
+
         # Calculate and store frequency for ten periods
         # =============================================
         frequency_10periods = pq.calculate_frequency_10periods(zero_indices, streaming_sample_interval)
