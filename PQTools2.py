@@ -25,10 +25,25 @@ Class  = 0
 
 #########---------------Funktionen-------------------########
 
-def moving_average(a,n=15):
+def moving_average3(a,n=25):
+    ret = np.cumsum(a,dtype=float)
+    ret_begin = ret[:n:2]/np.arange(1,n+1,2)
+    ret_end = np.cumsum(a[-n/2:], dtype=float)
+    ret_end = (ret_end[-1]+ret_end[0]-ret_end)/np.arange(n,0,-2)    
+    ret[n/2+1:-n/2+1] = (ret[n:] - ret[:-n])/n
+    ret[:n/2+1] = ret_begin
+    ret[-(n/2+1):] = ret_end
+    return ret
+
+def moving_average(a,n=25):
     ret = np.cumsum(a,dtype=float)
     ret[n:] = ret[n:] - ret[:-n]
     return np.append(np.zeros(n/2),ret[n-1:]/n)
+
+def moving_average_rec(a,n=25):
+    ret = np.cumsum(a,dtype=float)
+    ret[n:] = ret[n:] - ret[:-n]
+    return np.append(moving_average_rec(a[:n/2+1],n/2),ret[n-1:]/n)
 
 def moving_average2(values,window=15):
     weigths = np.repeat(1.0, window)/window
@@ -36,7 +51,7 @@ def moving_average2(values,window=15):
     #for example, if you take out valid, it will start @ point one,
     #not having any prior points, so itll be 1+0+0 = 1 /3 = .3333
     smas = np.convolve(values, weigths, 'same')
-    smas[0] = 0
+    #smas[0] = 0
     return smas # as a numpy array
 
 def Lowpass_Filter(data, SAMPLING_RATE):
@@ -53,41 +68,49 @@ def Lowpass_Filter(data, SAMPLING_RATE):
         plt.grid(True)
         plt.show()
     return data_filtered
-            
-def calculate_Frequency(SAMPLING_RATE, data):        
-    t = detect_zero_crossings(data, SAMPLING_RATE)
-    freq_sample = (t[len(t)-1]-t[0])/(len(t)-1)*2
-    measured_frequency = SAMPLING_RATE/freq_sample
-            
-    return measured_frequency, freq_sample
         
-def detect_zero_crossings(data):
+def calculate_Frequency(SAMPLING_RATE, data):        
+    zero_indices = detect_zero_crossings(data,PLOTTING = True)
+    plt.plot(np.diff(zero_indices))
+    plt.show()
+    zero_indices = detect_zero_crossings(data,PLOTTING = True)
+    if (zero_indices.size % 2 == 0):
+        zero_indices = zero_indices[:-1]
+    print(zero_indices.size)
+    samplesbetweenzeroindices = (zero_indices[-1]-zero_indices[1])
+    print(samplesbetweenzeroindices)
+    frequency = float((zero_indices.size-1)/2) / ((zero_indices[-1]-zero_indices[1])) * SAMPLING_RATE
+    return frequency        
+
+def detect_zero_crossings(data,PLOTTING=False):
     #data_filtered = Lowpass_Filter(data, SAMPLING_RATE)    
-    data_filtered2 = moving_average(data)
-    data_filtered = moving_average2(data)
+    #data -= np.mean(data)
+    data_filtered = moving_average(data)
+    data_filtered2 = moving_average3(data)
     pos = data_filtered > 0
     npos = ~pos
     zero_crossings_raw = ((pos[:-1] & npos[1:]) | (npos[:-1] & pos[1:]))
-    #zero_crossings = ((pos[:-1] & npos[1:]) | (npos[:-1] & pos[1:])).nonzero()[0]
 
     pos = data_filtered >= 0
     npos = ~pos
     zero_crossings_raw2 = ((pos[:-1] & npos[1:]) | (npos[:-1] & pos[1:]))
-    #zero_crossings2 = ((pos[:-1] & npos[1:]) | (npos[:-1] & pos[1:])).nonzero()[0]
 
     zero_crossings_combined = (zero_crossings_raw | zero_crossings_raw2).nonzero()[0]
 
-    #print('Combined Zero Crossings: '+str((zero_crossings_raw | zero_crossings_raw2).nonzero()[0]))
-
-    if True:
+    if PLOTTING:
         plt.plot(data, 'b') 
         plt.plot(data_filtered, 'r')
         plt.plot(data_filtered2, 'g')
         plt.xlim(0, zero_crossings_combined[20])
         plt.grid(True)
-        plt.plot(zero_crossings_combined,data[zero_crossings_combined],'o')
+        plt.plot(zero_crossings_combined,np.zeros(zero_crossings_combined.size),'o')
         plt.show()
     return zero_crossings_combined
+
+def calculate_frequency_10periods(zero_indices, SAMPLING_RATE):
+    time_10periods = float((zero_indices[20] - zero_indices[0])) / SAMPLING_RATE
+    frequency_10periods = 10.0 / time_10periods
+    return frequency_10periods
 
 def fast_fourier_transformation(data, SAMPLING_RATE):
     plot_FFT = 0    #Show FFT Signal Plot        
@@ -118,17 +141,21 @@ def calculate_rms_half_period(data):
     rms_points = np.sqrt(np.mean(np.power(data, 2)))
     rms_half_period = rms_points/V_max*Resolution
     if (rms_half_period <= (0.9*230) and rms_half_period >= (0.1*230)):
-        print ("Es ist eine Unterspannung aufgetreten!")
+        pass
+        #print ("Es ist eine Unterspannung aufgetreten!")
         ###----hier wird statt der ausgabe ein flag gesetzt-----######
     elif rms_half_period < 0.1*230:
-        print("Es liegt eine Spannungunterbrechung vor!")
+        pass
+        #print("Es liegt eine Spannungunterbrechung vor!")
         ###----hier wird statt der ausgabe ein flag gesetzt-----######
     elif rms_half_period > 1.1*230:
-        print ("Es ist eine Überspannung aufgetreten!")
+        pass
+        #print ("Es ist eine Überspannung aufgetreten!")
         ###----hier wird statt der ausgabe ein flag gesetzt-----######
     else:
-        print("Alles OK!")
-        ###----hier wird statt der ausgabe ein flag gesetzt-----######
+        pass
+        #print("Alles OK!")
+        ###----hier wird statt der ausgabe ein flag gesetzt-----#####
     return rms_half_period
         
 def calculate_harmonics_voltage(data, SAMPLING_RATE):

@@ -5,6 +5,9 @@ import time
 import sys
 import matplotlib.pyplot as plt
 from ring_array import ring_array
+import logging
+
+PLOTTING = 0
 
 pico = Picoscope4000.Picoscope4000()
 pico.run_streaming()
@@ -14,9 +17,10 @@ streaming_sample_interval = parameters['streaming_sample_interval']
 
 min_snippet_length = streaming_sample_interval/2
 
-data = ring_array()
-data_10periods = np.array([np.zeros(10000000)])
-data_10seconds = np.array([])
+data = ring_array(size=10000000)
+#data_10periods = np.array([np.zeros(10000000)])
+
+data_10seconds = ring_array(size=20000000) 
 
 rms_half_period = np.array(np.zeros(20))
 
@@ -24,80 +28,122 @@ is_first_iteration = 1
 #tstart = time.time()
 #time.sleep(0.5) # Activate when first data is None and first iterations runs with None data, should be fixed
 
+# Initialize Logging
+# ==================
+
+queueLogger = logging.getLogger('queueLogger')
+queueLogger.setLevel(logging.DEBUG)
+
+fhq = logging.FileHandler('Logs/queueLog.log')
+fhq.setLevel(logging.DEBUG)
+
+shq = logging.StreamHandler()
+shq.setLevel(logging.INFO)
+
+formatterq = logging.Formatter('%(asctime)s \t %(levelname)s \t %(message)s')
+fhq.setFormatter(formatterq)
+shq.setFormatter(formatterq)
+
+queueLogger.addHandler(fhq)
+queueLogger.addHandler(shq)
+
+dataLogger = logging.getLogger('dataLogger')
+dataLogger.setLevel(logging.DEBUG)
+
+fhd = logging.FileHandler('Logs/dataLog.log')
+fhd.setLevel(logging.DEBUG)
+
+shd = logging.StreamHandler()
+shd.setLevel(logging.INFO)
+
+formatterd = logging.Formatter('%(asctime)s \t %(levelname)s \t %(message)s')
+fhd.setFormatter(formatterd)
+shd.setFormatter(formatterd)
+
+dataLogger.addHandler(fhd)
+dataLogger.addHandler(shd)
+
 try:
     while True:
         while data.size < min_snippet_length:
 
+            snippet = pico.get_queue_data()
+
             if is_first_iteration:
-                # detect the very first zero crossing:
-                snippet = pico.get_queue_data()
+                # Detect the very first zero crossing:
                 if snippet is not None:
-                    print('Snippet is '+str(snippet))
                     data.attach_to_back(snippet)
-                    print('data: '+str(data.get_data_view()))
-                    print('data[0]: '+str(data.get_index(0)))
+                    data_10seconds.attach_to_back(snippet)
+
+                    queueLogger.debug('Length of snippet:      +'+str(snippet.size))
+                    queueLogger.debug('Length of current data: '+str(data.size))
+
+                    # Cut off everything before the first zero crossing:
                     first_zero_crossing = np.nonzero(np.sign(data.get_data_view()) == -1 * np.sign(data.get_index(0)))[0][0]-1
-                    print('first_zero_crossing: '+str(first_zero_crossing))
-                    print('Value before start: '+str(data.get_index(first_zero_crossing-1))+', First value: '+str(data.get_index(first_zero_crossing)))
+                    queueLogger.debug('Cut off '+str(first_zero_crossing)+' values before first zero crossing') 
                     data.cut_off_front(first_zero_crossing)
-                    print('data: '+str(data.get_data_view()))
+                    data_10seconds.cut_off_front(first_zero_crossing)
                     is_first_iteration = 0
 
             else:
                 # Get data snippet from Queue
-                snippet = pico.get_queue_data()
                 if snippet is not None:
                     data.attach_to_back(snippet)
-                    print('Length of recorded snippet: '+str(len(snippet)))
+                    data_10seconds.attach_to_back(snippet)
+
+                    queueLogger.debug('Length of snippet:      +'+str(snippet.size))
+                    queueLogger.debug('Length of current data: '+str(data.size))
                 else:
                     pass
-                    #print(str(snippet))
-                time.sleep(0.1)
     
-        #data_chunk = data[:min_snippet_length]
-
-        # remove DC component mathmatically, works better than switchung Picoscope to AC coupling
-
-        #data_chunk -= np.mean(data_chunk)
-
+        
+        # Find 10 periods
+        # ===============
         zero_indices = pq.detect_zero_crossings(data.get_data_view())
-
-        #print('data_chunk: '+str(data_chunk))
-        print('zero_indices: '+str(zero_indices))
-        print(np.diff(zero_indices))   
-        #if False:
-            #plt.plot(np.diff(zero_indices), 'b') 
-            #plt.grid(True)
-            #plt.show()
-        #np.save('/home/kipfer/pqpico/Data/data_chunk',data_chunk) 
-        #print(len(data_chunk))
-
+        dataLogger.debug('Cutting off :'+str(zero_indices[20]-1))
+        queueLogger.debug('Cutting off:            -'+str(zero_indices[20]-1))
         data_10periods = data.cut_off_front(zero_indices[20]-1)
-        #data_10seconds = np.append(data_10seconds, data_10periods) #Preallocation?
 
-        print('Length of data_10periods : '+str(data_10periods.size))
-
-        #data = np.array([1,2,3,4,5])
-        #data = data[zero_indices[20]:zero_indices[20]+10]
-        #shift_zeros = zero_indices - zero_indices[0]
-
-        #for i in xrange(20):    
-            #rms_half_period = pq.calculate_rms_half_period(data_10periods[shift_zeros[i]:shift_zeros[i+1]])
-
-        print(np.mean(data_10periods))
-        data_10periods -= np.mean(data_10periods)
+ 
+        # Calculate and store frequency for ten periods
+        # =============================================
+        frequency_10periods = pq.calculate_frequency_10periods(zero_indices, streaming_sample_interval)
+        dataLogger.debug('Frequency of 10 periods: '+str(frequency_10periods))
+        if PLOTTING:
+            plt.plot(np.diff(zero_indices), 'b') 
+            plt.grid(True)
+            plt.show()
+        dataLogger.debug('Mean value of 10 periods: '+str(np.mean(data_10periods)))
     
+     
+        # Calculate and store RMS values of half periods 
+        # ==============================================
         for i in xrange(20):    
             rms_half_period[i] = pq.calculate_rms_half_period(data_10periods[zero_indices[i]:zero_indices[i+1]])
+        if PLOTTING:
+            plt.plot(rms_half_period)
+            plt.grid(True)
+            plt.show()
 
-        print('RMSs: '+str(rms_half_period))
 
-        plt.plot(rms_half_period)
-        plt.grid(True)
-        plt.show()
+        # Calculate and store RMS values of 10 periods
+        # ============================================
+        rms_10periods = pq.calculate_rms(data_10periods)
+        dataLogger.debug('RMS voltage of 10 periods: '+str(rms_10periods))
 
-        rms_10_periods = pq.calculate_rms(data_10periods)
-        print('RMS: '+str(rms_10_periods))
+
+        # Calculate frequency of 10 seconds
+        # =================================
+        if (data_10seconds.size > 10*streaming_sample_interval):
+            frequency_data = data_10seconds.cut_off_front(10*streaming_sample_interval)
+            plt.plot(frequency_data)
+            plt.grid()
+            plt.show()
+            frequency = pq.calculate_Frequency(streaming_sample_interval,frequency_data)
+            dataLogger.info('Frequency10s: '+str(frequency))
+            break
+
+
 
         #harmonics = pq.calculate_harmonics_ClassA(data_10periods, parameters['streaming_sample_interval'])
 
@@ -113,10 +159,15 @@ try:
             #break
             
 
-        break
+        #break
 
 finally:
     pico.close_unit()
+
+    # Error Handling: Save and log all variables
+    # ==========================================
+
+
 
 
 #def print memoryusage(variable:
