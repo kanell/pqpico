@@ -1,6 +1,6 @@
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 
-PORT_NUMBER = 9999
+PORT_NUMBER = 9998
 
 class myHandler(BaseHTTPRequestHandler):
 
@@ -8,8 +8,11 @@ class myHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Content-type','text/html')
         self.end_headers()
+    
+        htmlfile = open('testsite.html','rb')
 
-        self.wfile.write('Hellooooo')
+        filecontent = htmlfile.read()
+        self.wfile.write(filecontent)
 
         return
 
