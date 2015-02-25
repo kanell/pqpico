@@ -37,7 +37,7 @@
         //}); 
 
 
-        $.getJSON("jsontest/data.json", function(data) {
+        $.getJSON("jsontest/data.json?callback=getjsondata", function(data) {
             console.log('getJSON');
             console.log(data);
             vdata = data;
