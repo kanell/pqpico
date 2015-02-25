@@ -3,6 +3,7 @@ import numpy as np
 class ring_array():
     def __init__(self, size = 1000000):
         self.ringBuffer = np.array(np.zeros(size))
+        self.zero_indices = np.array(np.zeros(size/1000))
         self.size = 0
 
     def get_data_view(self):

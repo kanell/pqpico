@@ -3,19 +3,70 @@
 <html>
 <head>
 <script src="https://code.jquery.com/jquery-1.11.2.min.js"></script>
+<script>"jquery-csv.js"</script>
+<script src="http://code.highcharts.com/highcharts.js"></script>
+
 </head>
 <body>
 
 <h1> HEADING </h1>
+<h2> HIGHCHART:</h2>
+
+<div id="container" style="width:100%; height=400px;" ></div>
+
 <script>
+        var vdata = [];
+        console.log('Script');
     jQuery(document).ready(function($) {
+            console.log('Jquery');
         $("h1").click(function(event) {
             console.log("the Heading has been clicked");
+            console.log(vdata);
         });
-        $.get("http://localhost:9998", function(data) {
+        //$.get("http://localhost:9998", function(data) {
+        //    console.log(data);
+        //});
+        //$.get("http://localhost:9999", function(data) {
+        //    console.log(data);
+        //});
+        //$.get("data.csv", function(csv) {
+        //    console.log(csv);
+        //});
+        //$.getJSON("jsontest/jsonwriter.py", function(data) {
+        //    console.log(data);
+        //}); 
+
+
+        $.getJSON("jsontest/data.json", function(data) {
+            console.log('getJSON');
             console.log(data);
-        });
+            vdata = data;
+
+            $('#container').highcharts({
+                chart: {
+                    type: 'bar'
+                },
+                title: {
+                    text: 'Fruit Consumption'
+                },
+                xAxis: {
+                    categories: ['Apples', 'Bananas', 'Oranges']
+                },
+                yAxis: {
+                    title: {
+                        text: 'Fruit eaten'
+                    }
+                },
+                series: [{
+                    name: 'Jane',
+                    data: vdata
+                }, {
+                    name: 'John',
+                    data: [5, 7, 3]
+                }]
+            });
     });
+});
 </script>
 
 </body>

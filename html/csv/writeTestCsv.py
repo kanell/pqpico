@@ -5,8 +5,3 @@ def writecsv():
         datawriter = csv.writer(csvfile, delimiter=' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
         datawriter.writerow(['spam'] * 5)
 
-
-import timeit
-
-
-print(timeit.repeat('writecsv()','from __main__ import writecsv', number = 1000))
