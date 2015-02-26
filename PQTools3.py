@@ -50,7 +50,6 @@ def moving_average2(values,window=25):
     #for example, if you take out valid, it will start @ point one,
     #not having any prior points, so itll be 1+0+0 = 1 /3 = .3333
     smas = np.convolve(values, weigths, 'same')
-    smas[0] = 0
     return smas # as a numpy array
 
 def Lowpass_Filter(data, SAMPLING_RATE):
@@ -77,7 +76,6 @@ def detect_zero_crossings(data,PLOTTING=False,filter_func='moving_average2'):
     #data_filtered = moving_average(data)
     #data_filtered2 = moving_average3(data)
     modulename = sys.modules[__name__]
-    #print(str(modulename))
     func = getattr(modulename,filter_func)
     data_filtered = func(data)
     pos = data_filtered > 0
@@ -107,11 +105,8 @@ def compare_filter_for_zero_crossings(data, SAMPLING_RATE):
 
     print('moving_average: '+str(freq1)+', moving_average2: '+str(freq2)+', moving_average3: '+str(freq3))
 
-def calculate_Frequency(SAMPLING_RATE, data, filter_func = 'moving_average3'):        
+def calculate_Frequency(data, SAMPLING_RATE, filter_func = 'moving_average3'):        
     zero_indices = detect_zero_crossings(data,PLOTTING = False, filter_func = filter_func)
-    #plt.plot(np.diff(zero_indices))
-    #plt.show()
-    #zero_indices = detect_zero_crossings(data,PLOTTING = True)
     #print('Number of zero_crossings_pure: '+str(zero_indices.size))
     if (zero_indices.size % 2 != 0):
         zero_indices = zero_indices[:-1]

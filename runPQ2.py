@@ -4,7 +4,7 @@ import numpy as np
 import time
 import sys
 import matplotlib.pyplot as plt
-from ring_array import ring_array
+from ring_array import ring_array, ring_array_global_data
 import logging
 
 PLOTTING = 0
@@ -15,18 +15,15 @@ pico.run_streaming()
 parameters = pico.get_parameters()
 streaming_sample_interval = parameters['streaming_sample_interval']
 
-streaming_sample_interval = parameters['streaming_sample_interval']
-
 min_snippet_length = streaming_sample_interval/2
 
-data = ring_array(size=10000000)
-data_10seconds = ring_array(size=20000000) 
+data = ring_array_global_data(size=2000000)
+data_10seconds = ring_array(size=(20*streaming_sample_interval)) 
 data_10min = ring_array(size=20000000)
 rms_half_period = np.array(np.zeros(20))
 
 first_value = 0
 is_first_iteration = 1
-#tstart = time.time()
 #time.sleep(0.5) # Activate when first data is None and first iterations runs with None data, should be fixed
 
 # Initialize Logging
@@ -64,7 +61,7 @@ shd.setFormatter(formatterd)
 dataLogger.addHandler(fhd)
 dataLogger.addHandler(shd)
 
-try:
+try:    
     while True:
         while data.size < min_snippet_length:
 
@@ -82,9 +79,15 @@ try:
 
                     # Cut off everything before the first zero crossing:
                     # ==================================================
-                    first_zero_crossing = np.nonzero(np.sign(data.get_data_view()) == -1 * np.sign(data.get_index(0)))[0][0]-1
+#                    first_zero_crossing = np.nonzero(np.sign(data.get_data_view()) == -1 * np.sign(data.get_index(0)))[0][0]-1
+#                    queueLogger.debug('Cut off '+str(first_zero_crossing)+' values before first zero crossing') 
+#                    data.cut_off_front(first_zero_crossing)
+#                    data_10seconds.cut_off_front(first_zero_crossing)
+#                    is_first_iteration = 0
+                    
+                    first_zero_crossing = data.get_zero_indices()[0]
                     queueLogger.debug('Cut off '+str(first_zero_crossing)+' values before first zero crossing') 
-                    data.cut_off_front(first_zero_crossing)
+                    data.cut_off_front(first_zero_crossing, 0)
                     data_10seconds.cut_off_front(first_zero_crossing)
                     is_first_iteration = 0
 
@@ -103,12 +106,12 @@ try:
         
         # Find 10 periods
         # ===============
-        zero_indices = pq.detect_zero_crossings(data.get_data_view())
+        zero_indices = data.get_zero_indices()[:21]
         if zero_indices.size < 15 or zero_indices.size > 200:
             dataLogger.error('Number of zero crossings in '+str(data.get_data_view().size)+': '+str(zero_indices.size))
-        dataLogger.debug('Cutting off :'+str(zero_indices[20]-1))
-        queueLogger.debug('Cutting off:            -'+str(zero_indices[20]-1))
-        data_10periods = data.cut_off_front(zero_indices[20]-1)
+        dataLogger.debug('Cutting off :'+str(zero_indices[20]))
+        queueLogger.debug('Cutting off:            -'+str(zero_indices[20]))        
+        data_10periods = data.cut_off_front(zero_indices[20], 20)
         
         # Calculate and store frequency for 10 periods
         # =============================================
@@ -152,7 +155,7 @@ try:
                 plt.plot(frequency_data)
                 plt.grid()
                 plt.show()
-            frequency = pq.calculate_Frequency(streaming_sample_interval,frequency_data)
+            frequency = pq.calculate_Frequency(frequency_data, streaming_sample_interval)
             dataLogger.info('Frequency of 10s: '+str(frequency))
             pico.put_queue_data()
         
@@ -167,7 +170,6 @@ try:
             flicker_data = data_10min.cut_off_front(600*streaming_sample_interval/250)
             Pst = pq.calculate_Pst(flicker_data)
             dataLogger.info('Pst: '+str(Pst))
-            break
 
 finally:
     pico.close_unit()
