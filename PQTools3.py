@@ -22,7 +22,7 @@ Class  = 0
 
 ##########-------------Initialisierung von globalen Listen-----------##########
 
-
+y = np.array(np.zeros(1500))
 
 ##########------------------------Funktionen-------------------------##########
 
@@ -217,7 +217,7 @@ def convert_data_to_lower_fs(data, SAMPLING_RATE, first_value):
     delta = np.arange(first_value,data.size,step)
     data_flicker =data[delta]
     first_value = step - data[delta[-1]:].size
-    return data_flicker
+    return data_flicker, first_value
 
 def calculate_Pst(data):    
     show_time_signals = 0           #Aktivierung des Plots der Zeitsignale im Flickermeter
@@ -397,4 +397,51 @@ def calculate_unbalance(rms_10min_u, rms_10min_v, rms_10min_w):
 def count_up_values(values_list):
     new_value = np.sqrt(np.sum(np.power(values_list,2), axis=0)/len(values_list))
     return new_value
- 
+
+# Plot functions
+# ==============
+
+class plotting_fequency():
+    def __init__(self):
+        self.y = np.array(np.zeros(1500))
+        self.x = np.arange(0,self.y.size/5,0.2)
+        self.fig, self.ax1 = plt.subplots(1,1)
+        plt.xlim(300,0)
+        plt.ylim(49.85, 50.15)
+        plt.xlabel('Time [s]')
+        plt.ylabel('Frequency [Hz]')
+        plt.title('Time course of the mains frequency:')
+        plt.grid(True)
+        plt.plot(self.x,self.y)
+    
+    def plot_frequency(self, freq): 
+        self.y = np.roll(self.y,1)
+        self.y[-1] = freq                
+        self.ax1.clear()
+        plt.xlim(300,0)
+        plt.ylim(49.85, 50.15)
+        plt.xlabel('Time [s]')
+        plt.ylabel('Frequency [Hz]')
+        plt.title('Time course of the mains frequency:')
+        plt.grid(True)
+        plt.plot(self.x,self.y)
+        plt.ion()
+        plt.draw()
+
+#def plot_frequency(freq):
+#    x = np.arange(0,y.size/5,0.2)
+#    fig, ax1 = plt.subplots(1,1)
+#    global y
+#    y = np.roll(y,1)
+#    y[-1] = freq                
+#    ax1.clear()
+#    ax1.set_xlim(300,0)
+#    ax1.set_ylim(49.85, 50.15)
+#    ax1.set_xlabel('Time [s]')
+#    ax1.set_ylabel('Frequency [Hz]')
+#    ax1.set_title('Time course of the mains frequency:')
+#    ax1.grid(True)
+#    plt.plot(x,y)
+#    fig.ion()
+#    plt.draw()
+        

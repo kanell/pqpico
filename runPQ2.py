@@ -19,13 +19,17 @@ min_snippet_length = streaming_sample_interval/2
 
 data = ring_array_global_data(size=2000000)
 data_10seconds = ring_array(size=(20*streaming_sample_interval)) 
-data_10min = ring_array(size=20000000)
+data_10min = ring_array(size=5000000)
 rms_half_period = np.array(np.zeros(20))
+rms_10periods_list = []
+thd_10periods_list = []
+harmonics_10periods_list = []
 
 first_value = 0
 is_first_iteration = 1
 #time.sleep(0.5) # Activate when first data is None and first iterations runs with None data, should be fixed
-
+if PLOTTING:
+    plotfreq = pq.plotting_fequency()
 # Initialize Logging
 # ==================
 
@@ -64,45 +68,32 @@ dataLogger.addHandler(shd)
 try:    
     while True:
         while data.size < min_snippet_length:
-
+            pico.put_queue_data() #muss wieder entfernt werden
             snippet = pico.get_queue_data()
 
-            if is_first_iteration:
-                # Detect the very first zero crossing:
+            if snippet is not None:
+                data.attach_to_back(snippet)
+                data_10seconds.attach_to_back(snippet)
+                
+                # Prepare data for Flicker calculation
                 # ====================================
-                if snippet is not None:
-                    data.attach_to_back(snippet)
-                    data_10seconds.attach_to_back(snippet)
+                data_for_10min, first_value = pq.convert_data_to_lower_fs(snippet, streaming_sample_interval+1, first_value)       
+                data_10min.attach_to_back(data_for_10min)
 
-                    queueLogger.debug('Length of snippet:      +'+str(snippet.size))
-                    queueLogger.debug('Length of current data: '+str(data.size))
-
-                    # Cut off everything before the first zero crossing:
-                    # ==================================================
-#                    first_zero_crossing = np.nonzero(np.sign(data.get_data_view()) == -1 * np.sign(data.get_index(0)))[0][0]-1
-#                    queueLogger.debug('Cut off '+str(first_zero_crossing)+' values before first zero crossing') 
-#                    data.cut_off_front(first_zero_crossing)
-#                    data_10seconds.cut_off_front(first_zero_crossing)
-#                    is_first_iteration = 0
+                queueLogger.debug('Length of snippet:      +'+str(snippet.size))
+                queueLogger.debug('Length of current data: '+str(data.size))
                     
-                    first_zero_crossing = data.get_zero_indices()[0]
-                    queueLogger.debug('Cut off '+str(first_zero_crossing)+' values before first zero crossing') 
-                    data.cut_off_front(first_zero_crossing, 0)
-                    data_10seconds.cut_off_front(first_zero_crossing)
-                    is_first_iteration = 0
-
             else:
-                # Get data snippet from Queue:
-                # ============================
-                if snippet is not None:
-                    data.attach_to_back(snippet)
-                    data_10seconds.attach_to_back(snippet)
-
-                    queueLogger.debug('Length of snippet:      +'+str(snippet.size))
-                    queueLogger.debug('Length of current data: '+str(data.size))
-                else:
-                    pass
-    
+                pass    
+        
+        # Cut off everything before the first zero crossing:
+        # ==================================================           
+        if is_first_iteration:
+            first_zero_crossing = data.get_zero_indices()[0]
+            queueLogger.debug('Cut off '+str(first_zero_crossing)+' values before first zero crossing') 
+            data.cut_off_front(first_zero_crossing, 0)
+            is_first_iteration = 0
+            counter = first_zero_crossing
         
         # Find 10 periods
         # ===============
@@ -118,10 +109,7 @@ try:
         frequency_10periods = pq.calculate_frequency_10periods(zero_indices, streaming_sample_interval)
         dataLogger.debug('Frequency of 10 periods: '+str(frequency_10periods))
         if PLOTTING:
-            plt.plot(np.diff(zero_indices), 'b') 
-            plt.title('Difference between zero crossings')
-            plt.grid(True)
-            plt.show()
+            plotfreq.plot_frequency(frequency_10periods)
         dataLogger.debug('Mean value of 10 periods: '+str(np.mean(data_10periods)))
     
      
@@ -138,14 +126,39 @@ try:
         # Calculate and store RMS values of 10 periods
         # ============================================
         rms_10periods = pq.calculate_rms(data_10periods)
+        rms_10periods_list.append(rms_10periods)
         dataLogger.debug('RMS voltage of 10 periods: '+str(rms_10periods))
 
         # Calculate and store harmonics and THD values of 10 periods
         # ==========================================================
         harmonics_10periods = pq.calculate_harmonics_voltage(data_10periods,streaming_sample_interval)
         thd_10periods = pq.calculate_THD(harmonics_10periods, streaming_sample_interval)
+        harmonics_10periods_list.append(harmonics_10periods)
+        thd_10periods_list.append(thd_10periods)
         dataLogger.debug('THD of 10 periods: '+str(thd_10periods))
         
+        # Prepare for 10 min Measurement
+        # ==============================
+        counter += data_10periods.size
+        if (counter >= 600*streaming_sample_interval):
+            data.attach_to_front(data_10periods[:(600*streaming_sample_interval-counter)])
+            is_first_iteration = 1
+            
+            # Calculate RMS of 10 min
+            # =======================
+            rms_10min = pq.count_up_values(rms_10periods_list)
+            dataLogger.info('RMS voltage of 10 min: '+str(rms_10min))
+            
+            # Calculate THD of 10 min
+            # =======================
+            thd_10min = pq.count_up_values(thd_10periods_list)
+            dataLogger.info('THD of 10 min: '+str(thd_10min))
+            
+            # Calculate Harmonics of 10 min
+            # =======================
+            harmonics_10min = pq.count_up_values(harmonics_10periods_list)
+            dataLogger.debug('Harmonics of 10 min: '+str(harmonics_10min))
+            
         # Calculate frequency of 10 seconds
         # =================================
         if (data_10seconds.size > 10*streaming_sample_interval):
@@ -157,20 +170,14 @@ try:
                 plt.show()
             frequency = pq.calculate_Frequency(frequency_data, streaming_sample_interval)
             dataLogger.info('Frequency of 10s: '+str(frequency))
-            pico.put_queue_data()
-        
-        # Prepare data for Flicker calculation
-        # ====================================
-            data_for_10min = pq.convert_data_to_lower_fs(frequency_data, streaming_sample_interval, first_value)       
-            data_10min.attach_to_back(data_for_10min)
-        
+                
         # Calculate flicker of 10 min
         # ===========================
-        if (data_10min.size > 600*streaming_sample_interval/250):
+        if (data_10min.size > 2400000):
             flicker_data = data_10min.cut_off_front(600*streaming_sample_interval/250)
             Pst = pq.calculate_Pst(flicker_data)
             dataLogger.info('Pst: '+str(Pst))
-
+           
 finally:
     pico.close_unit()
 

@@ -34,7 +34,14 @@ class ring_array_global_data():
     
     def get_zero_indices(self):
         return self.zero_indices[:self.size_zero_indices]
-
+        
+    def attach_to_front(self, data_to_attach):
+        self.ringBuffer = np.roll(self.ringBuffer, data_to_attach.size)
+        self.ringBuffer[:data_to_attach.size] = data_to_attach      
+        self.size += data_to_attach.size
+        self.zero_indices = pq.detect_zero_crossings(self.ringBuffer[:self.size])
+        self.size_zero_indices = self.zero_indices.size
+        
 class ring_array():
     def __init__(self, size = 1000000):
         self.ringBuffer = np.array(np.zeros(size))
