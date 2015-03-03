@@ -27,7 +27,7 @@ datadirectory_pokini = '/home/kipfer/pqpico/Data'
 
 
 # if 1, prints diagnostics to standard output
-VERBOSE = 1
+VERBOSE = 0
 # If 1, generates profile.txtpicotec
 PROFILING = 0 # Attention, may redirect standard print output, restart python kernel if output disappears
 
@@ -118,7 +118,6 @@ class Picoscope4000:
         self.apply_parameters()
         self.streaming_sample_interval = ctypes.c_uint(self.streaming_sample_interval)
                 
-        print(self.__dict__)
 
         # load the library
         if platform.system() == 'Windows':
@@ -128,11 +127,33 @@ class Picoscope4000:
         else:
             print('Unknown Platform')
 
+        if VERBOSE:
+            print(self.__dict__)
+
+        # Load the library
+        try:
+            if platform.system() == 'Windows':
+                self.lib = ctypes.windll.LoadLibrary(LIBNAME)
+            elif platform.system() == 'Linux':
+                self.lib = ctypes.cdll.LoadLibrary(LIBNAME)
+            else:
+                print('Unknown Platform')
+            self.fakeDataMode = False
+        except OSError:
+            print('\nNo Picoscope library found, switching to fake data mode\n')
+            self.fakeDataMode = True
+
+>>>>>>> master
+
         # Open Data Queue
         self.dataqueue = Queue.Queue()
 
         # open the picoscope
         self.handle = self.open_unit()
+<<<<<<< HEAD
+=======
+        print(str(self.handle))
+>>>>>>> master
         self.set_channel()
         self.get_Timebase()
         self.set_data_buffer()
@@ -143,7 +164,11 @@ class Picoscope4000:
 # Load parameters from parameters.ini
     def apply_parameters(self):
         if VERBOSE:
+<<<<<<< HEAD
             print('==== apply_parameters ====')
+=======
+            print('\n==== apply_parameters ====')
+>>>>>>> master
         configparser = ConfigParser.ConfigParser()
         configparser.read(parameterfilestring)
         inisections = configparser.sections()
@@ -166,18 +191,36 @@ class Picoscope4000:
     def get_parameters(self):
         return self.parameters
 
+<<<<<<< HEAD
              
                  
         
+=======
+>>>>>>> master
 # Basic Open and Close operations
     def open_unit(self):
         '''open interface to unit'''
         if VERBOSE == 1:
             print('==== open_unit ====')
+<<<<<<< HEAD
         self.handle = ctypes.c_int16()
         picoStatus = self.lib.ps4000aOpenUnit(ctypes.byref(self.handle),None)
         print(' PicoStatus: '+str(picoStatus))
         print(' Handle is '+str(self.handle.value))
+=======
+
+        # If fake Data is enabled, ignore everything:
+        if self.fakeDataMode:
+            pass
+            return 0
+    
+        # Open Picoscope:
+        self.handle = ctypes.c_int16()
+        picoStatus = self.lib.ps4000aOpenUnit(ctypes.byref(self.handle),None)
+        if VERBOSE:
+            print(' PicoStatus: '+str(picoStatus))
+            print(' Handle is '+str(self.handle.value))
+>>>>>>> master
         
         #change Power Source Setup if applied to USB 2.0 / 1.0 with doubled-headed cable
         if picoStatus == 286:
@@ -192,16 +235,31 @@ class Picoscope4000:
                 if VERBOSE:
                     print(' OK: Supply mode changed')
                     
+        # Handle Error Cases
         if self.handle.value == -1:
             print(' Failed to open oscilloscope')
         elif self.handle.value == 0:
             print(' No oscilloscope found')
+<<<<<<< HEAD
+=======
+            self.fakeDataMode = True
+            print('\nNo Picoscope found, switching to fake data mode\n')
+        print(self.handle)
+
+>>>>>>> master
         return self.handle
 
     def close_unit(self):
         '''close the interface to the unit'''
         if VERBOSE == 1:
             print('==== close_unit ====')
+<<<<<<< HEAD
+=======
+
+        if self.fakeDataMode:
+            return
+
+>>>>>>> master
         res = self.lib.ps4000aCloseUnit(self.handle.value)
         print(' '+str(res))
         self.handle = None
@@ -213,10 +271,22 @@ class Picoscope4000:
         
         
 # Setup Operations
+<<<<<<< HEAD
     def set_channel(self, channel=PS4000_CHANNEL_A, enabled=True, dc=True, vertrange=RANGE_10V, analogOffset=ANALOG_OFFSET_0V):
         '''Default Values: channel: Channel A | channel enabled: true | ac/dc coupling mode: dc(=true) | vertical range: 2Vpp'''
         if VERBOSE:
             print('==== SetChannel ====')
+=======
+    def set_channel(self, channel=PS4000_CHANNEL_A, enabled=True, dc=True, vertrange=RANGE_50V, analogOffset=ANALOG_OFFSET_0V):
+        '''Default Values: channel: Channel A | channel enabled: true | ac/dc coupling mode: dc(=true) | vertical range: 2Vpp'''
+
+        if VERBOSE:
+            print('==== SetChannel ====')
+
+        if self.fakeDataMode:
+            return
+
+>>>>>>> master
         try:
             res = self.lib.ps4000aSetChannel(self.handle, channel, enabled, dc, vertrange, analogOffset)
             if channel == PS4000_CHANNEL_A:
@@ -232,6 +302,13 @@ class Picoscope4000:
 # Set Data Buffer for each channel of the PS4824 scope      
     def set_data_buffer(self, channel=PS4000_CHANNEL_A, segmentIndex=0, mode=0):
         print('==== SetDataBuffer ====')
+<<<<<<< HEAD
+=======
+
+        if self.fakeDataMode:
+            return
+
+>>>>>>> master
         bufferlength = self.streaming_buffer_length
         try:
             if channel == PS4000_CHANNEL_A: #channel A is set
@@ -322,6 +399,13 @@ class Picoscope4000:
     def run_streaming(self, downSampleRatio=1, downSampleRatioMode=0):
         if VERBOSE:
             print('==== RunStreaming ====')
+<<<<<<< HEAD
+=======
+
+        if self.fakeDataMode:
+            return
+
+>>>>>>> master
         #prepareMeasurements
         sampleIntervalTimeUnit = self.streaming_sample_interval_unit
 
@@ -365,6 +449,13 @@ class Picoscope4000:
             pass
 
     def get_Timebase(self, timebase=99,noSamples=1000,segmentIndex= 1):
+<<<<<<< HEAD
+=======
+
+        if self.fakeDataMode:
+            return
+
+>>>>>>> master
         try:
             self.timeIntervalNS = ctypes.c_uint(0)
             self.maxSamples = ctypes.c_uint(0)
@@ -378,6 +469,13 @@ class Picoscope4000:
 
 # Actually retrieve the data on the pc
     def get_streaming_latest_values(self):
+<<<<<<< HEAD
+=======
+        
+        if self.fakeDataMode:
+            return self.enqueue_fake_data()
+
+>>>>>>> master
         buffer_callback = self.construct_buffer_callback()
         res = self.lib.ps4000aGetStreamingLatestValues(self.handle, buffer_callback)
         
@@ -387,11 +485,21 @@ class Picoscope4000:
     def get_queue_data(self):
         self.get_streaming_latest_values()
         if not self.dataqueue.empty():
+<<<<<<< HEAD
             return self.dataqueue.get()
+=======
+            return np.array(self.dataqueue.get())
+>>>>>>> master
         else:
             return None
     
     def stop_sampling(self):
+<<<<<<< HEAD
+=======
+        if self.fakeDataMode:
+            return
+
+>>>>>>> master
         try:
             res = self.lib.ps4000aStop(self.handle)
             if VERBOSE:
@@ -400,14 +508,33 @@ class Picoscope4000:
         finally:
             pass
         return res    
+<<<<<<< HEAD
+=======
+
+    def enqueue_fake_data(self):
+        if 'self.fakeDataPosition' not in locals():
+            self.fakeDataPosition = np.random.random_integers(0,10000)
+        x = np.linspace(0,np.pi,self.streaming_sample_interval.value)        
+        data = np.sin(50*x)
+        data = np.floor(data*18/50*32768/8)*8
+        self.dataqueue.put(data)
+>>>>>>> master
 
 if __name__ == '__main__':
+    #try:
+    pico = Picoscope4000()
+    #except:
+        #print('Error opening Picoscope')
+
     try:
+<<<<<<< HEAD
         pico = Picoscope4000()
     except:
         print('Error opening Picoscope')
 
     try:
+=======
+>>>>>>> master
         pico.run_streaming()
         for step in xrange(3):
             time.sleep(0.2)

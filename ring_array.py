@@ -82,6 +82,7 @@ if __name__ == '__main__':
     t = a.get_zero_indices()
     print(str(t2-t1))
 
+
 def test_ring_array():
     
     a = ring_array()

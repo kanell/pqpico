@@ -17,6 +17,7 @@ streaming_sample_interval = parameters['streaming_sample_interval']
 
 min_snippet_length = streaming_sample_interval/2
 
+<<<<<<< HEAD
 data = ring_array_global_data(size=2000000)
 data_10seconds = ring_array(size=(20*streaming_sample_interval)) 
 data_10min = ring_array(size=5000000)
@@ -30,6 +31,7 @@ is_first_iteration = 1
 #time.sleep(0.5) # Activate when first data is None and first iterations runs with None data, should be fixed
 if PLOTTING:
     plotfreq = pq.plotting_fequency()
+
 # Initialize Logging
 # ==================
 
@@ -105,11 +107,13 @@ try:
         data_10periods = data.cut_off_front(zero_indices[20], 20)
         
         # Calculate and store frequency for 10 periods
+
         # =============================================
         frequency_10periods = pq.calculate_frequency_10periods(zero_indices, streaming_sample_interval)
         dataLogger.debug('Frequency of 10 periods: '+str(frequency_10periods))
         if PLOTTING:
             plotfreq.plot_frequency(frequency_10periods)
+
         dataLogger.debug('Mean value of 10 periods: '+str(np.mean(data_10periods)))
     
      
@@ -178,8 +182,16 @@ try:
             Pst = pq.calculate_Pst(flicker_data)
             dataLogger.info('Pst: '+str(Pst))
            
+
 finally:
     pico.close_unit()
 
     # Error Handling: Save and log all variables
     # ==========================================
+
+
+
+
+
+#def print memoryusage(variable:
+#prin

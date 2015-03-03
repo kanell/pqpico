@@ -4,14 +4,14 @@ Created on Wed Feb  4 18:02:43 2015
 
 @author: Malte Gerber
 """
-##########---------------------------Module--------------------------##########
+###########------------Module----------------##############
 
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.signal as signal
 import sys
 
-##########------------------------Konstanten-------------------------##########
+########----------------Konstanten---------------############
 
 V_max = 32768/50
 R1 = 993000 # Ohm
@@ -24,7 +24,7 @@ Class  = 0
 
 y = np.array(np.zeros(1500))
 
-##########------------------------Funktionen-------------------------##########
+########------Initialisierung von globalen Listen-------##########
 
 # Filters
 # =======
@@ -44,7 +44,12 @@ def moving_average(a,n=25):
     ret[n:] = ret[n:] - ret[:-n]
     return np.append(np.zeros(n/2),ret[n-1:]/n)
 
-def moving_average2(values,window=25):
+def moving_average_rec(a,n=25):
+    ret = np.cumsum(a,dtype=float)
+    ret[n:] = ret[n:] - ret[:-n]
+    return np.append(moving_average_rec(a[:n/2+1],n/2),ret[n-1:]/n)
+
+def moving_average2(values,window=15):
     weigths = np.repeat(1.0, window)/window
     #including valid will REQUIRE there to be enough datapoints.
     #for example, if you take out valid, it will start @ point one,
@@ -70,12 +75,13 @@ def Lowpass_Filter(data, SAMPLING_RATE):
 # Frequency Calculation
 # =====================
 
-def detect_zero_crossings(data,PLOTTING=False,filter_func='moving_average2'):
+def detect_zero_crossings(data,PLOTTING=False,filter_func='moving_average3'):
     #data_filtered = Lowpass_Filter(data, SAMPLING_RATE)    
     #data -= np.mean(data)
     #data_filtered = moving_average(data)
     #data_filtered2 = moving_average3(data)
     modulename = sys.modules[__name__]
+    #print(str(modulename))
     func = getattr(modulename,filter_func)
     data_filtered = func(data)
     pos = data_filtered > 0
@@ -92,7 +98,7 @@ def detect_zero_crossings(data,PLOTTING=False,filter_func='moving_average2'):
         plt.plot(data, 'b') 
         plt.plot(data_filtered, 'r')
         #plt.plot(data_filtered2, 'g')
-        #plt.xlim(0, zero_crossings_combined[20])
+        plt.xlim(0, zero_crossings_combined[20])
         plt.grid(True)
         plt.plot(zero_crossings_combined,np.zeros(zero_crossings_combined.size),'o')
         plt.show()
@@ -218,7 +224,6 @@ def convert_data_to_lower_fs(data, SAMPLING_RATE, first_value):
     data_flicker =data[delta]
     first_value = step - data[delta[-1]:].size
     return data_flicker, first_value
-
 def calculate_Pst(data):    
     show_time_signals = 0           #Aktivierung des Plots der Zeitsignale im Flickermeter
     show_filter_responses = 0       #Aktivierung des Plots der Amplitudengänge der Filter.
@@ -385,6 +390,17 @@ def calculate_Plt(Pst_list):
 # Unbalance
 # =========
 
+        
+def count_up_values(values_list):
+    new_value = np.sqrt(np.sum(np.power(values_list,2), axis=0)/len(values_list))
+    return new_value
+    
+def convert_data_to_lower_fs(data, SAMPLING_RATE):
+    step = int(SAMPLING_RATE/4000)
+    delta = np.arange(0,len(data),step)
+    data_flicker =data[delta]
+    return data_flicker
+    
 def calculate_unbalance(rms_10min_u, rms_10min_v, rms_10min_w):
     a = -0.5+0.5j*np.sqrt(3)
     u1 =1.0/3*(rms_10min_u+rms_10min_v+rms_10min_w)
@@ -445,3 +461,29 @@ class plotting_fequency():
 #    fig.ion()
 #    plt.draw()
         
+
+def calculate_THD(data, SAMPLING_RATE):
+    if (Class == 1):
+        harmonics_amplitudes = calculate_harmonics_voltage(data, SAMPLING_RATE)
+        harmonics_amplitudes = harmonics_amplitudes**2
+    elif (Class == 0):
+        harmonics_amplitudes = calculate_harmonics_standard(data, SAMPLING_RATE)
+        harmonics_amplitudes = harmonics_amplitudes**2
+    else:
+        None
+    THD = np.sqrt(np.sum(harmonics_amplitudes[1:])/harmonics_amplitudes[0])*100
+    return THD
+    
+def calculate_Plt(Pst_list):
+    P_lt = np.power(np.power(Pst_list,3)/12,1/3)
+    return P_lt
+
+def test_harmonics(data, SAMPLING_RATE):
+    if (Class == 1):
+        harmonics_amplitudes = calculate_harmonics_voltage(data, SAMPLING_RATE)
+    elif (Class == 0):
+        harmonics_amplitudes = calculate_harmonics_standard(data, SAMPLING_RATE)
+    else:
+        None
+    
+    return 0
