@@ -1,11 +1,11 @@
 import numpy as np
-import PQTools3 as pq
+import PQTools as pq
 import time
 
 class ring_array_global_data():
     def __init__(self, size = 1000000):
         self.ringBuffer = np.array(np.zeros(size))
-        self.zero_indices = np.array(np.zeros(200), dtype=np.int64)
+        self.zero_indices = np.array(np.zeros(200), dtype=np.int32)
         self.size = 0
         self.size_zero_indices = 0
 
@@ -26,13 +26,17 @@ class ring_array_global_data():
         self.size_zero_indices += zero_indices_to_attach.size
 
     def cut_off_front(self, index, zero_crossing):
+        ##################
+        print(str(type(self.ringBuffer))+' is '+str(self.ringBuffer)+' and has len '+str(self.size) )
+        print(str(type(index))+' is '+str(index))
         self.ringBuffer = np.roll(self.ringBuffer,-index)
         self.zero_indices = np.roll(self.zero_indices,-zero_crossing)-index        
         self.size -= index
         self.size_zero_indices -= zero_crossing
         return self.ringBuffer[-index:]
-    
+   
     def get_zero_indices(self):
+        print(str(type(self.zero_indices[:self.size_zero_indices]))+' is '+str(self.zero_indices[:self.size_zero_indices]))
         return self.zero_indices[:self.size_zero_indices]
         
     def attach_to_front(self, data_to_attach):

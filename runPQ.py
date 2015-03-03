@@ -1,10 +1,10 @@
 import Picoscope4000
-import PQTools3 as pq
+import PQTools as pq
 import numpy as np
 import time
 import sys
 import matplotlib.pyplot as plt
-from ring_array import ring_array, ring_array_global_data
+from ringarray import ring_array, ring_array_global_data
 import logging
 
 PLOTTING = 0
@@ -17,7 +17,6 @@ streaming_sample_interval = parameters['streaming_sample_interval']
 
 min_snippet_length = streaming_sample_interval/2
 
-<<<<<<< HEAD
 data = ring_array_global_data(size=2000000)
 data_10seconds = ring_array(size=(20*streaming_sample_interval)) 
 data_10min = ring_array(size=5000000)
@@ -70,7 +69,7 @@ dataLogger.addHandler(shd)
 try:    
     while True:
         while data.size < min_snippet_length:
-            pico.put_queue_data() #muss wieder entfernt werden
+            #pico.put_queue_data() #muss wieder entfernt werden
             snippet = pico.get_queue_data()
 
             if snippet is not None:

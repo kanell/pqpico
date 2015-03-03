@@ -224,6 +224,7 @@ def convert_data_to_lower_fs(data, SAMPLING_RATE, first_value):
     data_flicker =data[delta]
     first_value = step - data[delta[-1]:].size
     return data_flicker, first_value
+
 def calculate_Pst(data):    
     show_time_signals = 0           #Aktivierung des Plots der Zeitsignale im Flickermeter
     show_filter_responses = 0       #Aktivierung des Plots der Amplitudengänge der Filter.
@@ -395,11 +396,11 @@ def count_up_values(values_list):
     new_value = np.sqrt(np.sum(np.power(values_list,2), axis=0)/len(values_list))
     return new_value
     
-def convert_data_to_lower_fs(data, SAMPLING_RATE):
-    step = int(SAMPLING_RATE/4000)
-    delta = np.arange(0,len(data),step)
-    data_flicker =data[delta]
-    return data_flicker
+#def convert_data_to_lower_fs(data, SAMPLING_RATE):
+#    step = int(SAMPLING_RATE/4000)
+#    delta = np.arange(0,len(data),step)
+#    data_flicker =data[delta]
+#    return data_flicker
     
 def calculate_unbalance(rms_10min_u, rms_10min_v, rms_10min_w):
     a = -0.5+0.5j*np.sqrt(3)
